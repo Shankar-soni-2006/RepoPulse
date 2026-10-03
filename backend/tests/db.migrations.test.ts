@@ -240,7 +240,7 @@ describe('claim_repository_sync', () => {
     (await db.query<{ id: string }>(`select id from claim_repository_sync('${REPO}', interval '${stale}')`)).rows;
 
   it('claims an idle repository exactly once', async () => {
-    await db.exec(`update repositories set sync_status = 'idle', sync_error = 'old' where id = '${REPO}'`);
+    await db.exec(`update repositories set sync_status = 'synced', sync_error = 'old' where id = '${REPO}'`);
     expect(await claim()).toHaveLength(1);
     const r = await one<{ sync_status: string; sync_error: string | null; sync_started_at: Date | null }>(
       `select sync_status, sync_error, sync_started_at from repositories where id = '${REPO}'`,
@@ -261,5 +261,27 @@ describe('claim_repository_sync', () => {
   it('defaults commits to non-merge', async () => {
     const c = await one<{ is_merge: boolean }>(`select is_merge from commits where sha = 'abc'`);
     expect(c.is_merge).toBe(false);
+  });
+});
+
+describe('migration 006 (spec alignment)', () => {
+  it('rejects a duplicate PR number within a repository', async () => {
+    await expect(db.exec(insertPr(1500, { number: '1000' }))).rejects.toThrow(/pull_requests_repository_number_key/);
+  });
+
+  it('uses the never | syncing | synced | failed vocabulary', async () => {
+    await db.exec(`update repositories set sync_status = 'failed' where id = '${REPO}'`);
+    await expect(db.exec(`update repositories set sync_status = 'idle' where id = '${REPO}'`)).rejects.toThrow(/check/i);
+  });
+
+  it('defaults repository flags to false', async () => {
+    const r = await one<{ is_fork: boolean; is_archived: boolean }>(
+      `select is_fork, is_archived from repositories where id = '${REPO}'`,
+    );
+    expect(r).toEqual({ is_fork: false, is_archived: false });
+  });
+
+  it('allows the processing webhook state', async () => {
+    await db.exec(`update webhook_events set status = 'processing' where github_delivery_id = 'd-1'`);
   });
 });

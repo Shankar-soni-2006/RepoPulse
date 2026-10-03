@@ -35,6 +35,9 @@ const ghRepo: GHRepository = {
   private: true,
   default_branch: 'main',
   language: 'TypeScript',
+  html_url: 'https://github.com/acme/api-renamed',
+  fork: false,
+  archived: true,
   stargazers_count: 0,
   forks_count: 0,
   open_issues_count: 0,
@@ -86,6 +89,9 @@ function repoRow(overrides: Partial<Repository> = {}): Repository {
     visibility: 'private',
     defaultBranch: 'main',
     language: null,
+    htmlUrl: null,
+    isFork: false,
+    isArchived: false,
     stargazersCount: 0,
     forksCount: 0,
     openIssuesCount: 0,
@@ -184,7 +190,7 @@ describe('sync engine', () => {
     expect(github.getRepositoryById).toHaveBeenCalledWith(555);
     expect(repositoryRepository.update).toHaveBeenCalledWith(
       REPO_ID,
-      expect.objectContaining({ full_name: 'acme/api-renamed' }),
+      expect.objectContaining({ full_name: 'acme/api-renamed', is_archived: true, html_url: 'https://github.com/acme/api-renamed' }),
     );
     expect(github.getPullRequest).toHaveBeenCalledWith('acme', 'api-renamed', 12);
   });

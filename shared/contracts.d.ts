@@ -30,7 +30,7 @@ export interface Paginated<T> {
 
 // ---- Domain ----
 
-export type SyncStatus = 'idle' | 'syncing' | 'error' | 'never';
+export type SyncStatus = 'never' | 'syncing' | 'synced' | 'failed';
 
 export interface Repository {
   id: string;
@@ -42,6 +42,10 @@ export interface Repository {
   visibility: 'public' | 'private' | 'internal';
   defaultBranch: string;
   language: string | null;
+  /** GitHub web URL */
+  htmlUrl: string | null;
+  isFork: boolean;
+  isArchived: boolean;
   stargazersCount: number;
   forksCount: number;
   openIssuesCount: number;

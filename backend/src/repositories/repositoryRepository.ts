@@ -13,6 +13,9 @@ interface RepositoryRow {
   visibility: string;
   default_branch: string;
   language: string | null;
+  html_url: string | null;
+  is_fork: boolean;
+  is_archived: boolean;
   stargazers_count: number;
   forks_count: number;
   open_issues_count: number;
@@ -40,6 +43,9 @@ function toRepository(row: RepositoryRow): Repository {
     visibility: row.visibility as Repository['visibility'],
     defaultBranch: row.default_branch,
     language: row.language,
+    htmlUrl: row.html_url,
+    isFork: row.is_fork,
+    isArchived: row.is_archived,
     stargazersCount: row.stargazers_count,
     forksCount: row.forks_count,
     openIssuesCount: row.open_issues_count,
@@ -138,11 +144,11 @@ export const repositoryRepository = {
   },
 
   async markSyncSucceeded(id: string, syncedAt: string): Promise<void> {
-    await this.update(id, { sync_status: 'idle', last_synced_at: syncedAt, sync_error: null });
+    await this.update(id, { sync_status: 'synced', last_synced_at: syncedAt, sync_error: null });
   },
 
   async markSyncFailed(id: string, message: string): Promise<void> {
-    await this.update(id, { sync_status: 'error', sync_error: message.slice(0, 1000) });
+    await this.update(id, { sync_status: 'failed', sync_error: message.slice(0, 1000) });
   },
 
   async update(id: string, update: Partial<RepositoryRow>): Promise<void> {

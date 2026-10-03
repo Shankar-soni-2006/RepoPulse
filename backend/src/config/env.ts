@@ -1,7 +1,12 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config();
+// Tests supply their own environment (vitest.config.mts) and must never read real credentials
+if (process.env.NODE_ENV !== 'test') dotenv.config();
+
+// A blank `KEY=` line in .env means "not set", not an empty value
+const optional = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
 
 const envSchema = z.object({
   PORT: z.string().default('3001'),
@@ -16,10 +21,10 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: optional(z.string().url()),
+  UPSTASH_REDIS_REST_TOKEN: optional(z.string()),
 
-  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: optional(z.string()),
 
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   // Public URL of this API — used to build the GitHub OAuth callback URL

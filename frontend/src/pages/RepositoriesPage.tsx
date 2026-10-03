@@ -7,6 +7,7 @@ import { useSession, SESSION_QUERY_KEY } from '@/hooks/useSession';
 import { REPOSITORIES_QUERY_KEY, useRepositories, useStartSync } from '@/hooks/useRepository';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import { SyncStatusBadge } from '@/components/repositories/SyncStatusBadge';
+import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -144,10 +145,10 @@ export function RepositoriesPage() {
                 aria-label="Sync status"
               >
                 <option value="all">Any sync status</option>
-                <option value="idle">Synced</option>
+                <option value="synced">Synced</option>
                 <option value="never">Not synced</option>
                 <option value="syncing">Syncing</option>
-                <option value="error">Sync failed</option>
+                <option value="failed">Sync failed</option>
               </Select>
               <span className="text-xs text-muted-foreground tabular-nums ml-auto">
                 {filtered.length} of {repos.length}
@@ -176,9 +177,13 @@ export function RepositoriesPage() {
                     return (
                       <Tr key={repo.id} onClick={() => navigate(`/repositories/${repo.id}/overview`)}>
                         <Td className="max-w-[22rem]">
-                          <div className="font-medium truncate">
-                            <span className="text-muted-foreground font-normal">{repo.owner}/</span>
-                            {repo.name}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-medium truncate">
+                              <span className="text-muted-foreground font-normal">{repo.owner}/</span>
+                              {repo.name}
+                            </span>
+                            {repo.isArchived && <Badge variant="warning">Archived</Badge>}
+                            {repo.isFork && <Badge variant="muted">Fork</Badge>}
                           </div>
                           {repo.description && (
                             <div className="text-xs text-muted-foreground truncate">{repo.description}</div>

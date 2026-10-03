@@ -64,7 +64,7 @@ export interface DailyMetric {
   avgPrSize: number | null;
 }
 
-export type WebhookEventStatus = 'received' | 'processed' | 'ignored' | 'failed';
+export type WebhookEventStatus = 'received' | 'processing' | 'processed' | 'ignored' | 'failed';
 
 export interface WebhookEvent {
   id: string;

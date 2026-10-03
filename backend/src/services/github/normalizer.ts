@@ -25,6 +25,9 @@ export interface NormalizedRepository {
   visibility: 'public' | 'private' | 'internal';
   default_branch: string;
   language: string | null;
+  html_url: string | null;
+  is_fork: boolean;
+  is_archived: boolean;
   stargazers_count: number;
   forks_count: number;
   open_issues_count: number;
@@ -110,6 +113,9 @@ export function normalizeRepository(gh: GHRepository): NormalizedRepository {
     visibility,
     default_branch: gh.default_branch,
     language: gh.language,
+    html_url: gh.html_url ?? null,
+    is_fork: gh.fork ?? false,
+    is_archived: gh.archived ?? false,
     stargazers_count: gh.stargazers_count,
     forks_count: gh.forks_count,
     open_issues_count: gh.open_issues_count,

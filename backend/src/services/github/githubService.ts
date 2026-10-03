@@ -18,6 +18,9 @@ export interface GHRepository {
   visibility?: string;
   default_branch: string;
   language: string | null;
+  html_url: string;
+  fork: boolean;
+  archived: boolean;
   stargazers_count: number;
   forks_count: number;
   open_issues_count: number;

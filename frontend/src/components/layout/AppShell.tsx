@@ -120,7 +120,8 @@ export function AppShell() {
                 {syncInProgress ? 'Syncing…' : 'Sync'}
               </Button>
               <a
-                href={`https://github.com/${repo.fullName}`}
+                href={repo.htmlUrl ?? `https://github.com/${repo.fullName}`}
+                title="Open on GitHub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
