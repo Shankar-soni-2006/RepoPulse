@@ -1,0 +1,102 @@
+import { supabase } from '../config/supabase';
+import type { Repository } from '../types';
+
+// ---- Row type (snake_case from DB) ----
+interface RepositoryRow {
+  id: string;
+  github_id: number;
+  installation_id: string | null;
+  name: string;
+  full_name: string;
+  owner: string;
+  description: string | null;
+  visibility: string;
+  default_branch: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+  sync_status: string;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function toRepository(row: RepositoryRow): Repository {
+  return {
+    id: row.id,
+    githubId: row.github_id,
+    name: row.name,
+    fullName: row.full_name,
+    owner: row.owner,
+    description: row.description,
+    visibility: row.visibility as Repository['visibility'],
+    defaultBranch: row.default_branch,
+    language: row.language,
+    stargazersCount: row.stargazers_count,
+    forksCount: row.forks_count,
+    openIssuesCount: row.open_issues_count,
+    syncStatus: row.sync_status as Repository['syncStatus'],
+    lastSyncedAt: row.last_synced_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export const repositoryRepository = {
+  async findAll(): Promise<Repository[]> {
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('*')
+      .order('full_name');
+    if (error) throw error;
+    return (data as RepositoryRow[]).map(toRepository);
+  },
+
+  async findById(id: string): Promise<Repository | null> {
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return toRepository(data as RepositoryRow);
+  },
+
+  async findByGithubId(githubId: number): Promise<Repository | null> {
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('*')
+      .eq('github_id', githubId)
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return toRepository(data as RepositoryRow);
+  },
+
+  async upsert(repo: Omit<RepositoryRow, 'id' | 'created_at' | 'updated_at'>): Promise<Repository> {
+    const { data, error } = await supabase
+      .from('repositories')
+      .upsert(repo, { onConflict: 'github_id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return toRepository(data as RepositoryRow);
+  },
+
+  async updateSyncStatus(
+    id: string,
+    status: Repository['syncStatus'],
+    lastSyncedAt?: string,
+  ): Promise<void> {
+    const update: Partial<RepositoryRow> = { sync_status: status };
+    if (lastSyncedAt) update.last_synced_at = lastSyncedAt;
+    const { error } = await supabase.from('repositories').update(update).eq('id', id);
+    if (error) throw error;
+  },
+};

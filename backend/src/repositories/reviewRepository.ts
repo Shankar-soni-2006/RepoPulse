@@ -1,0 +1,62 @@
+import { supabase } from '../config/supabase';
+import type { Review } from '../types';
+
+interface ReviewRow {
+  id: string;
+  github_id: number;
+  pull_request_id: string;
+  repository_id: string;
+  contributor_id: string | null;
+  reviewer_login: string;
+  state: string;
+  submitted_at: string;
+  created_at: string;
+}
+
+function toReview(row: ReviewRow): Review {
+  return {
+    id: row.id,
+    githubId: row.github_id,
+    pullRequestId: row.pull_request_id,
+    repositoryId: row.repository_id,
+    reviewerId: row.contributor_id,
+    reviewerLogin: row.reviewer_login,
+    state: row.state as Review['state'],
+    submittedAt: row.submitted_at,
+    createdAt: row.created_at,
+  };
+}
+
+export const reviewRepository = {
+  async findByPullRequest(pullRequestId: string): Promise<Review[]> {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('pull_request_id', pullRequestId)
+      .order('submitted_at', { ascending: true });
+    if (error) throw error;
+    return (data as ReviewRow[]).map(toReview);
+  },
+
+  async upsertMany(
+    reviews: Omit<ReviewRow, 'id' | 'created_at'>[],
+  ): Promise<void> {
+    if (reviews.length === 0) return;
+    const { error } = await supabase
+      .from('reviews')
+      .upsert(reviews, { onConflict: 'github_id,pull_request_id' });
+    if (error) throw error;
+  },
+
+  async findFirstReviewTime(pullRequestId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('submitted_at')
+      .eq('pull_request_id', pullRequestId)
+      .order('submitted_at', { ascending: true })
+      .limit(1)
+      .single();
+    if (error) return null;
+    return (data as { submitted_at: string }).submitted_at;
+  },
+};
