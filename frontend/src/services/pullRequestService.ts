@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { PullRequest, PullRequestFilters } from '../types';
+import type { Paginated, PullRequest, PullRequestFilters } from '../types';
 
 export const pullRequestService = {
   list: (repositoryId: string, filters?: PullRequestFilters & { page?: number; limit?: number }) => {
@@ -11,7 +11,7 @@ export const pullRequestService = {
     if (filters?.page) params.set('page', String(filters.page));
     if (filters?.limit) params.set('limit', String(filters.limit));
     const qs = params.toString();
-    return api.get<{ items: PullRequest[]; total: number }>(
+    return api.get<Paginated<PullRequest>>(
       `/api/repositories/${repositoryId}/pull-requests${qs ? `?${qs}` : ''}`,
     );
   },

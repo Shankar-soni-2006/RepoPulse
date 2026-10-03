@@ -12,9 +12,9 @@ import { sendSuccess, sendError } from '../utils/response';
 
 // Step 1: Redirect to GitHub OAuth
 export function handleGithubLogin(_req: Request, res: Response): void {
+  // GitHub Apps don't take OAuth scopes — permissions come from the App's configuration
   const { url } = githubApp.oauth.getWebFlowAuthorizationUrl({
-    redirectUrl: `${env.FRONTEND_URL.replace('5173', '3001')}/api/auth/callback`,
-    scopes: [],
+    redirectUrl: `${env.BACKEND_URL}/api/auth/callback`,
   });
   res.redirect(url);
 }
@@ -68,13 +68,18 @@ export async function handleGithubCallback(
     // Upsert installations
     let primaryInstallationId: number | null = null;
     for (const inst of installations) {
+      // Enterprise installations have no `login`/`type`; RepoPulse only supports user/org accounts
+      const account = inst.account;
+      if (!account || !('login' in account)) continue;
+      if (account.type !== 'User' && account.type !== 'Organization') continue;
+
       await supabase.from('github_installations').upsert(
         {
           user_id: user.id,
           installation_id: inst.id,
           app_id: inst.app_id,
-          account_login: inst.account?.login ?? '',
-          account_type: inst.account?.type ?? 'User',
+          account_login: account.login,
+          account_type: account.type,
           access_token: accessToken,
         },
         { onConflict: 'installation_id' },

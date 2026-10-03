@@ -81,7 +81,7 @@ export function AppShell() {
                 cn(
                   'flex items-center gap-2.5 px-4 py-2 text-sm transition-colors',
                   isActive
-                    ? 'bg-primary/8 text-primary font-medium border-r-2 border-primary'
+                    ? 'bg-primary/10 text-primary font-medium border-r-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
                 )
               }

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { pullRequestRepository } from '../repositories/pullRequestRepository';
 import { sendSuccess } from '../utils/response';
-import { NotFoundError, ValidationError } from '../utils/errors';
+import { NotFoundError } from '../utils/errors';
 
 const querySchema = z.object({
   status: z.enum(['open', 'closed', 'merged']).optional(),
@@ -19,11 +19,10 @@ export async function getPullRequests(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const parsed = querySchema.safeParse(req.query);
-    if (!parsed.success) throw new ValidationError(parsed.error.message);
+    const query = querySchema.parse(req.query);
     const result = await pullRequestRepository.findByRepository(
       req.params.repositoryId,
-      parsed.data,
+      query,
     );
     sendSuccess(res, result);
   } catch (err) {

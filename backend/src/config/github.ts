@@ -4,6 +4,11 @@ import { env } from '../config/env';
 // Normalize the private key — environment variables may have literal \n
 const privateKey = env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n');
 
+export const githubAppCredentials = {
+  appId: env.GITHUB_APP_ID,
+  privateKey,
+};
+
 export const githubApp = new App({
   appId: env.GITHUB_APP_ID,
   privateKey,

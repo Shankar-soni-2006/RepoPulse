@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
-import { githubApp } from '../config/github';
-import { GitHubError } from '../utils/errors';
+import { createAppAuth } from '@octokit/auth-app';
+import { githubAppCredentials } from '../../config/github';
+import { GitHubError } from '../../utils/errors';
 
 // ---- Types returned by GitHub API (relevant fields only) ----
 
@@ -19,6 +20,22 @@ export interface GHRepository {
   open_issues_count: number;
 }
 
+// Shape returned by `pulls.list` — the list endpoint omits size fields
+export interface GHPullRequestSummary {
+  id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  user: { login: string; id: number } | null;
+  state: string;
+  labels: { name?: string }[];
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  closed_at: string | null;
+}
+
+// Shape returned by `pulls.get` — includes size fields
 export interface GHPullRequest {
   id: number;
   number: number;
@@ -26,7 +43,7 @@ export interface GHPullRequest {
   body: string | null;
   user: { login: string; id: number } | null;
   state: string;
-  labels: { name: string }[];
+  labels: { name?: string }[];
   additions: number;
   deletions: number;
   changed_files: number;
@@ -64,31 +81,18 @@ export interface GHContributor {
 // ---- GitHub Service ----
 
 export class GitHubService {
-  private octokit: Octokit;
+  private readonly octokit: Octokit;
 
+  // Installation-scoped client; auth-app mints and refreshes installation tokens automatically
   constructor(installationId: number) {
-    // Will be initialized async — use factory method
-    this.octokit = new Octokit();
-    this._installationId = installationId;
-  }
-
-  private _installationId: number;
-
-  static async create(installationId: number): Promise<GitHubService> {
-    const service = new GitHubService(installationId);
-    await service._init();
-    return service;
-  }
-
-  private async _init(): Promise<void> {
-    const { token } = await githubApp.getInstallationOctokit(this._installationId).then(
-      async (kit) => {
-        // Extract token via auth
-        const auth = await (kit as unknown as { auth: (opts: { type: string }) => Promise<{ token: string }> }).auth({ type: 'installation' });
-        return auth;
+    this.octokit = new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId: githubAppCredentials.appId,
+        privateKey: githubAppCredentials.privateKey,
+        installationId,
       },
-    );
-    this.octokit = new Octokit({ auth: token });
+    });
   }
 
   async getRepository(owner: string, repo: string): Promise<GHRepository> {
@@ -115,14 +119,14 @@ export class GitHubService {
     }
   }
 
-  async listPullRequests(owner: string, repo: string): Promise<GHPullRequest[]> {
+  async listPullRequests(owner: string, repo: string): Promise<GHPullRequestSummary[]> {
     try {
-      const prs: GHPullRequest[] = [];
+      const prs: GHPullRequestSummary[] = [];
       for await (const { data } of this.octokit.paginate.iterator(
         this.octokit.pulls.list,
         { owner, repo, state: 'all', per_page: 100 },
       )) {
-        prs.push(...(data as GHPullRequest[]));
+        prs.push(...data);
       }
       return prs;
     } catch (err: unknown) {

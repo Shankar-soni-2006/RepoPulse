@@ -22,6 +22,8 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
 
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  // Public URL of this API — used to build the GitHub OAuth callback URL
+  BACKEND_URL: z.string().url().default('http://localhost:3001'),
 });
 
 const parsed = envSchema.safeParse(process.env);

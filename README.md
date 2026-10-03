@@ -4,8 +4,8 @@
 RepoPulse connects to GitHub, synchronizes repository activity, calculates engineering metrics, and provides AI-assisted analysis of engineering trends.
 
 ## Stack
-- **Frontend**: React + Vite + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend**: Node.js + Express + TypeScript + Octokit
+- **Frontend**: React + Vite + TypeScript + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript + Octokit + Zod
 - **Database**: Supabase (PostgreSQL)
 - **Cache**: Upstash Redis
 - **AI**: Google Gemini API
@@ -13,45 +13,48 @@ RepoPulse connects to GitHub, synchronizes repository activity, calculates engin
 ## Project Structure
 ```
 repopulse/
-├── frontend/       # React + Vite frontend
-├── backend/        # Express API server
+├── frontend/       # React + Vite frontend (talks only to the Express API)
+├── backend/        # Express API server (tests in backend/tests)
+├── shared/         # API contract types shared by backend and frontend
 ├── supabase/       # Database migrations
-└── scripts/        # Utility scripts
+├── scripts/        # Utility scripts
+└── docs/           # Architecture, database and requirements docs
 ```
 
 ## Setup
 
-### 1. Clone and install
+### 1. Install
 ```bash
-git clone <repo>
-cd repopulse
-
-# Install backend deps
-cd backend && npm install
-
-# Install frontend deps
-cd ../frontend && npm install
+npm run install:all
 ```
 
 ### 2. Configure environment
 ```bash
-cp .env.example backend/.env
-# Fill in all required values
+cp .env.example backend/.env                  # fill in required values
+cp frontend/.env.example frontend/.env
 ```
+Register `${BACKEND_URL}/api/auth/callback` as the callback URL in your GitHub App.
 
 ### 3. Run database migrations
+Apply `supabase/migrations/*.sql` via the Supabase CLI or dashboard.
+
+### 4. Develop
 ```bash
-# Apply migrations via Supabase CLI or dashboard
+npm run dev:backend     # http://localhost:3001
+npm run dev:frontend    # http://localhost:5173 (proxies /api to the backend)
 ```
 
-### 4. Start development
+### 5. Verify
 ```bash
-# Backend
-cd backend && npm run dev
-
-# Frontend
-cd frontend && npm run dev
+npm run typecheck
+npm test
+npm run build
 ```
+
+## API Contract
+All responses use `{ "success": true, "data": … }` or
+`{ "success": false, "error": { "code", "message" } }`.
+Shared types live in `shared/contracts.d.ts`.
 
 ## Environment Variables
-See `.env.example` for all required variables.
+See `.env.example` (backend) and `frontend/.env.example` (frontend).

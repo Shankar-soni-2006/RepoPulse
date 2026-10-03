@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { env } from './config/env';
-import { errorMiddleware } from './middleware/error';
+import { errorMiddleware, notFoundMiddleware } from './middleware/error';
 import { sessionMiddleware } from './middleware/session';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
@@ -33,7 +33,8 @@ app.use('/api/repositories/:repositoryId/analytics', analyticsRouter);
 app.use('/api/pull-requests', pullRequestDetailRouter);
 app.use('/api/ai', aiRouter);
 
-// ---- Error handler (must be last) ----
+// ---- Unknown routes / error handler (must be last) ----
+app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
 export default app;

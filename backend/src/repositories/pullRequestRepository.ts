@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { PullRequest } from '../types';
+import type { Paginated, PullRequest } from '../types';
 
 interface PullRequestRow {
   id: string;
@@ -66,7 +66,7 @@ export const pullRequestRepository = {
   async findByRepository(
     repositoryId: string,
     filters: PRFilters = {},
-  ): Promise<{ items: PullRequest[]; total: number }> {
+  ): Promise<Paginated<PullRequest>> {
     const page = filters.page ?? 1;
     const limit = Math.min(filters.limit ?? 25, 100);
     const from = (page - 1) * limit;

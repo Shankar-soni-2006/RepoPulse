@@ -125,7 +125,7 @@ export function normalizePullRequest(
     body: gh.body,
     author_login: authorLogin,
     status,
-    labels: gh.labels.map((l) => l.name),
+    labels: gh.labels.map((l) => l.name).filter((n): n is string => !!n),
     additions: gh.additions,
     deletions: gh.deletions,
     changed_files: gh.changed_files,

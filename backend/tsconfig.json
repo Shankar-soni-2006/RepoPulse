@@ -11,6 +11,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./../shared/*"]
+    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
