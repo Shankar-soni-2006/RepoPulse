@@ -9,7 +9,7 @@ interface ReviewRow {
   contributor_id: string | null;
   reviewer_login: string;
   state: string;
-  submitted_at: string;
+  submitted_at: string | null;
   created_at: string;
 }
 
@@ -33,7 +33,7 @@ export const reviewRepository = {
       .from('reviews')
       .select('*')
       .eq('pull_request_id', pullRequestId)
-      .order('submitted_at', { ascending: true });
+      .order('submitted_at', { ascending: true, nullsFirst: false });
     if (error) throw error;
     return (data as ReviewRow[]).map(toReview);
   },
@@ -49,14 +49,16 @@ export const reviewRepository = {
   },
 
   async findFirstReviewTime(pullRequestId: string): Promise<string | null> {
+    // Pending reviews have no submitted_at and don't count as a review yet
     const { data, error } = await supabase
       .from('reviews')
       .select('submitted_at')
       .eq('pull_request_id', pullRequestId)
+      .not('submitted_at', 'is', null)
       .order('submitted_at', { ascending: true })
       .limit(1)
-      .single();
-    if (error) return null;
-    return (data as { submitted_at: string }).submitted_at;
+      .maybeSingle();
+    if (error) throw error;
+    return (data as { submitted_at: string } | null)?.submitted_at ?? null;
   },
 };

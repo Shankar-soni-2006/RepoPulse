@@ -57,14 +57,15 @@ export interface GHReview {
   id: number;
   user: { login: string; id: number } | null;
   state: string;
-  submitted_at: string;
+  submitted_at?: string | null; // absent for pending reviews
 }
 
 export interface GHCommit {
   sha: string;
   author: { login: string } | null;
   commit: {
-    author: { name: string; date: string } | null;
+    author: { name?: string; date?: string } | null;
+    committer: { name?: string; date?: string } | null;
     message: string;
   };
   stats?: { additions: number; deletions: number };

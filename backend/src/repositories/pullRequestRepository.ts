@@ -17,14 +17,23 @@ interface PullRequestRow {
   changed_files: number;
   review_count: number;
   first_review_at: string | null;
+  // Generated columns (computed by Postgres, read-only)
   cycle_time: number | null;
   first_review_time: number | null;
   pr_size: number;
+  // GitHub timestamps
   created_at: string;
   updated_at: string;
   merged_at: string | null;
   closed_at: string | null;
+  synced_at: string;
 }
+
+// Columns the app writes; generated columns and bookkeeping are excluded
+export type PullRequestInsert = Omit<
+  PullRequestRow,
+  'id' | 'cycle_time' | 'first_review_time' | 'pr_size' | 'synced_at'
+>;
 
 function toPullRequest(row: PullRequestRow): PullRequest {
   return {
@@ -104,7 +113,7 @@ export const pullRequestRepository = {
     return toPullRequest(data as PullRequestRow);
   },
 
-  async upsertMany(prs: Omit<PullRequestRow, 'id' | 'created_at' | 'updated_at'>[]): Promise<void> {
+  async upsertMany(prs: PullRequestInsert[]): Promise<void> {
     if (prs.length === 0) return;
     const { error } = await supabase
       .from('pull_requests')
@@ -117,13 +126,10 @@ export const pullRequestRepository = {
     reviewCount: number,
     firstReviewAt: string | null,
   ): Promise<void> {
-    const firstReviewTime =
-      firstReviewAt
-        ? null // calculated by analytics engine from DB
-        : null;
+    // first_review_time is a generated column derived from first_review_at
     const { error } = await supabase
       .from('pull_requests')
-      .update({ review_count: reviewCount, first_review_at: firstReviewAt, first_review_time: firstReviewTime })
+      .update({ review_count: reviewCount, first_review_at: firstReviewAt })
       .eq('id', id);
     if (error) throw error;
   },

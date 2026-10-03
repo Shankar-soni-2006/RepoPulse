@@ -13,6 +13,8 @@ interface DailyMetricRow {
   avg_cycle_time: number | null;
   avg_first_review_time: number | null;
   active_contributors: number;
+  review_count: number;
+  avg_pr_size: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +32,8 @@ function toDailyMetric(row: DailyMetricRow): DailyMetric {
     avgCycleTime: row.avg_cycle_time,
     avgFirstReviewTime: row.avg_first_review_time,
     activeContributors: row.active_contributors,
+    reviewCount: row.review_count,
+    avgPrSize: row.avg_pr_size,
   };
 }
 

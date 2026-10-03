@@ -73,17 +73,31 @@ export async function handleGithubCallback(
       if (!account || !('login' in account)) continue;
       if (account.type !== 'User' && account.type !== 'Organization') continue;
 
-      await supabase.from('github_installations').upsert(
-        {
-          user_id: user.id,
-          installation_id: inst.id,
-          app_id: inst.app_id,
-          account_login: account.login,
-          account_type: account.type,
-          access_token: accessToken,
-        },
-        { onConflict: 'installation_id' },
-      );
+      // Installations are shared (an org install is visible to many users); access is
+      // recorded in user_installations. Tokens are never stored on the installation.
+      const { data: installation, error: installationError } = await supabase
+        .from('github_installations')
+        .upsert(
+          {
+            installation_id: inst.id,
+            app_id: inst.app_id,
+            account_login: account.login,
+            account_type: account.type,
+          },
+          { onConflict: 'installation_id' },
+        )
+        .select('id')
+        .single();
+      if (installationError) throw installationError;
+
+      const { error: accessError } = await supabase
+        .from('user_installations')
+        .upsert(
+          { user_id: user.id, installation_id: installation.id },
+          { onConflict: 'user_id,installation_id', ignoreDuplicates: true },
+        );
+      if (accessError) throw accessError;
+
       if (!primaryInstallationId) primaryInstallationId = inst.id;
     }
 

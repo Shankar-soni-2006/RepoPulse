@@ -46,6 +46,8 @@ export interface Repository {
   forksCount: number;
   openIssuesCount: number;
   syncStatus: SyncStatus;
+  /** Last sync failure message; null when the last sync succeeded */
+  syncError: string | null;
   lastSyncedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -90,7 +92,8 @@ export interface Review {
   reviewerId: string | null;
   reviewerLogin: string;
   state: ReviewState;
-  submittedAt: string;
+  /** null for pending (unsubmitted) reviews */
+  submittedAt: string | null;
   createdAt: string;
 }
 

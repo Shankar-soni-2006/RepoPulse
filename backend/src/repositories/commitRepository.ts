@@ -8,8 +8,8 @@ interface CommitRow {
   contributor_id: string | null;
   author_login: string | null;
   message: string;
-  additions: number;
-  deletions: number;
+  additions: number | null;
+  deletions: number | null;
   committed_at: string;
   created_at: string;
 }

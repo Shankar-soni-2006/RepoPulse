@@ -23,7 +23,11 @@ export const analyticsService = {
     const mergedPrs = prs.filter((p) => p.status === 'merged');
     const cycleTimes = mergedPrs.map((p) => p.cycleTime).filter((v): v is number => v !== null);
     const reviewTimes = prs.map((p) => p.firstReviewTime).filter((v): v is number => v !== null);
-    const codeChurn = commits.reduce((sum, c) => sum + c.additions + c.deletions, 0);
+    // Commits without fetched stats are unknown, not zero — excluded here; Phase 6 reports coverage
+    const codeChurn = commits.reduce(
+      (sum, c) => (c.additions === null || c.deletions === null ? sum : sum + c.additions + c.deletions),
+      0,
+    );
 
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 

@@ -17,6 +17,8 @@ interface RepositoryRow {
   forks_count: number;
   open_issues_count: number;
   sync_status: string;
+  sync_error: string | null;
+  sync_started_at: string | null;
   last_synced_at: string | null;
   created_at: string;
   updated_at: string;
@@ -37,6 +39,7 @@ function toRepository(row: RepositoryRow): Repository {
     forksCount: row.forks_count,
     openIssuesCount: row.open_issues_count,
     syncStatus: row.sync_status as Repository['syncStatus'],
+    syncError: row.sync_error,
     lastSyncedAt: row.last_synced_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -79,7 +82,13 @@ export const repositoryRepository = {
     return toRepository(data as RepositoryRow);
   },
 
-  async upsert(repo: Omit<RepositoryRow, 'id' | 'created_at' | 'updated_at'>): Promise<Repository> {
+  // Metadata only — sync bookkeeping columns are owned by the update* methods below
+  async upsert(
+    repo: Omit<
+      RepositoryRow,
+      'id' | 'created_at' | 'updated_at' | 'sync_status' | 'sync_error' | 'sync_started_at' | 'last_synced_at'
+    >,
+  ): Promise<Repository> {
     const { data, error } = await supabase
       .from('repositories')
       .upsert(repo, { onConflict: 'github_id' })
@@ -89,13 +98,23 @@ export const repositoryRepository = {
     return toRepository(data as RepositoryRow);
   },
 
-  async updateSyncStatus(
-    id: string,
-    status: Repository['syncStatus'],
-    lastSyncedAt?: string,
-  ): Promise<void> {
-    const update: Partial<RepositoryRow> = { sync_status: status };
-    if (lastSyncedAt) update.last_synced_at = lastSyncedAt;
+  async markSyncStarted(id: string): Promise<void> {
+    await this.update(id, {
+      sync_status: 'syncing',
+      sync_started_at: new Date().toISOString(),
+      sync_error: null,
+    });
+  },
+
+  async markSyncSucceeded(id: string, syncedAt: string): Promise<void> {
+    await this.update(id, { sync_status: 'idle', last_synced_at: syncedAt, sync_error: null });
+  },
+
+  async markSyncFailed(id: string, message: string): Promise<void> {
+    await this.update(id, { sync_status: 'error', sync_error: message.slice(0, 1000) });
+  },
+
+  async update(id: string, update: Partial<RepositoryRow>): Promise<void> {
     const { error } = await supabase.from('repositories').update(update).eq('id', id);
     if (error) throw error;
   },

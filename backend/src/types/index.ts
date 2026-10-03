@@ -35,8 +35,9 @@ export interface Commit {
   authorId: string | null;
   authorLogin: string | null;
   message: string;
-  additions: number;
-  deletions: number;
+  /** null when GitHub stats were not fetched */
+  additions: number | null;
+  deletions: number | null;
   committedAt: string;
   createdAt: string;
 }
@@ -53,7 +54,11 @@ export interface DailyMetric {
   avgCycleTime: number | null;
   avgFirstReviewTime: number | null;
   activeContributors: number;
+  reviewCount: number;
+  avgPrSize: number | null;
 }
+
+export type WebhookEventStatus = 'received' | 'processed' | 'ignored' | 'failed';
 
 export interface WebhookEvent {
   id: string;
@@ -62,6 +67,8 @@ export interface WebhookEvent {
   action: string | null;
   githubDeliveryId: string;
   payload: Record<string, unknown>;
+  status: WebhookEventStatus;
+  processingError: string | null;
   processedAt: string | null;
   createdAt: string;
 }

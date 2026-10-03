@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { WebhookEvent } from '../types';
+import type { WebhookEvent, WebhookEventStatus } from '../types';
 
 interface WebhookEventRow {
   id: string;
@@ -8,6 +8,8 @@ interface WebhookEventRow {
   action: string | null;
   github_delivery_id: string;
   payload: Record<string, unknown>;
+  status: WebhookEventStatus;
+  processing_error: string | null;
   processed_at: string | null;
   created_at: string;
 }
@@ -20,13 +22,20 @@ function toWebhookEvent(row: WebhookEventRow): WebhookEvent {
     action: row.action,
     githubDeliveryId: row.github_delivery_id,
     payload: row.payload,
+    status: row.status,
+    processingError: row.processing_error,
     processedAt: row.processed_at,
     createdAt: row.created_at,
   };
 }
 
+export type WebhookEventInsert = Pick<
+  WebhookEventRow,
+  'repository_id' | 'event_type' | 'action' | 'github_delivery_id' | 'payload'
+>;
+
 export const webhookEventRepository = {
-  async create(event: Omit<WebhookEventRow, 'id' | 'created_at'>): Promise<WebhookEvent> {
+  async create(event: WebhookEventInsert): Promise<WebhookEvent> {
     const { data, error } = await supabase
       .from('webhook_events')
       .insert(event)
@@ -37,9 +46,21 @@ export const webhookEventRepository = {
   },
 
   async markProcessed(id: string): Promise<void> {
+    await this.setOutcome(id, 'processed', null);
+  },
+
+  async markIgnored(id: string, reason: string): Promise<void> {
+    await this.setOutcome(id, 'ignored', reason);
+  },
+
+  async markFailed(id: string, message: string): Promise<void> {
+    await this.setOutcome(id, 'failed', message.slice(0, 1000));
+  },
+
+  async setOutcome(id: string, status: WebhookEventStatus, processingError: string | null): Promise<void> {
     const { error } = await supabase
       .from('webhook_events')
-      .update({ processed_at: new Date().toISOString() })
+      .update({ status, processing_error: processingError, processed_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
   },
