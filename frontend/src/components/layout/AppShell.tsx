@@ -1,5 +1,4 @@
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   GitPullRequest,
@@ -12,7 +11,7 @@ import {
   ChevronDown,
   Activity,
 } from 'lucide-react';
-import { repositoryService } from '@/services/repositoryService';
+import { useRepository, useStartSync } from '@/hooks/useRepository';
 import { useSession } from '@/hooks/useSession';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import { SyncStatusBadge } from '@/components/repositories/SyncStatusBadge';
@@ -20,7 +19,6 @@ import { Button } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/States';
 import { formatRelative } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import { useState } from 'react';
 import { ApiRequestError } from '@/services/api';
 
 const NAV_ITEMS = [
@@ -35,29 +33,11 @@ const NAV_ITEMS = [
 export function AppShell() {
   const { repositoryId } = useParams<{ repositoryId: string }>();
   const navigate = useNavigate();
-  const [syncing, setSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
   const { data: session } = useSession();
-
-  const { data: repo, error: repoError, refetch } = useQuery({
-    queryKey: ['repository', repositoryId],
-    queryFn: () => repositoryService.get(repositoryId!),
-    enabled: !!repositoryId,
-  });
-
-  async function handleSync() {
-    if (!repositoryId) return;
-    setSyncing(true);
-    setSyncError(null);
-    try {
-      await repositoryService.sync(repositoryId);
-      await refetch();
-    } catch (err) {
-      setSyncError((err as Error).message);
-    } finally {
-      setSyncing(false);
-    }
-  }
+  const { data: repo, error: repoError, refetch } = useRepository(repositoryId);
+  const startSync = useStartSync();
+  const syncError = startSync.error?.message ?? null;
+  const syncInProgress = startSync.isPending || repo?.syncStatus === 'syncing';
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -130,9 +110,14 @@ export function AppShell() {
                   ? `Synced ${formatRelative(repo.lastSyncedAt)}`
                   : 'Never synced'}
               </span>
-              <Button size="sm" variant="secondary" loading={syncing} onClick={handleSync}>
-                <RefreshCw className="h-3 w-3" />
-                Sync
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={syncInProgress}
+                onClick={() => startSync.mutate(repo.id)}
+              >
+                {!syncInProgress && <RefreshCw className="h-3 w-3" />}
+                {syncInProgress ? 'Syncing…' : 'Sync'}
               </Button>
               <a
                 href={`https://github.com/${repo.fullName}`}

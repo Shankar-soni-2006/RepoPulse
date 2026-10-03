@@ -45,6 +45,12 @@ npm run dev:backend     # http://localhost:3001
 npm run dev:frontend    # http://localhost:5173 (proxies /api to the backend)
 ```
 
+### Sync a repository from the CLI
+```bash
+npm run sync:repo -- <repositoryId>
+```
+See `docs/architecture/sync.md`.
+
 ### 5. Verify
 ```bash
 npm run typecheck

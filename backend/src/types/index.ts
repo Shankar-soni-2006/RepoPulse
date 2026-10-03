@@ -42,6 +42,8 @@ export interface Commit {
   /** null when GitHub stats were not fetched */
   additions: number | null;
   deletions: number | null;
+  /** Merge commits repeat merged changes; excluded from churn */
+  isMerge: boolean;
   committedAt: string;
   createdAt: string;
 }

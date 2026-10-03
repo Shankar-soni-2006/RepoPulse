@@ -9,7 +9,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "sync:repo": "npm --prefix backend run sync:repo --"
   },
   "engines": {
     "node": ">=20"

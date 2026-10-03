@@ -4,7 +4,8 @@ import { getAuth } from '../middleware/auth';
 import { sessionService } from '../services/auth/sessionService';
 import { discoverForUser } from '../services/github/discoveryService';
 import { sendSuccess } from '../utils/response';
-import { AppError, NotFoundError } from '../utils/errors';
+import { NotFoundError } from '../utils/errors';
+import { syncService } from '../services/sync/syncService';
 
 export async function listRepositories(
   req: Request,
@@ -49,11 +50,16 @@ export async function getRepository(
   }
 }
 
+// Starts a background sync; clients poll the repository's syncStatus
 export async function syncRepository(
-  _req: Request,
-  _res: Response,
+  req: Request,
+  res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // The sync engine lands in Phase 5; until then, say so rather than pretend a sync started
-  next(new AppError('SYNC_NOT_AVAILABLE', 'Repository synchronization is not available yet', 501));
+  try {
+    const repo = await syncService.start(req.params.repositoryId);
+    sendSuccess(res, repo, 202);
+  } catch (err) {
+    next(err);
+  }
 }

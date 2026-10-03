@@ -111,12 +111,30 @@ export const repositoryRepository = {
     return toRepository(data as RepositoryRow);
   },
 
-  async markSyncStarted(id: string): Promise<void> {
-    await this.update(id, {
-      sync_status: 'syncing',
-      sync_started_at: new Date().toISOString(),
-      sync_error: null,
+  /**
+   * Atomically moves the repository to 'syncing'. Returns null when another sync
+   * holds it (a claim older than `staleAfterMinutes` counts as abandoned).
+   */
+  async claimForSync(id: string, staleAfterMinutes: number): Promise<Repository | null> {
+    const { data, error } = await supabase.rpc('claim_repository_sync', {
+      p_repository_id: id,
+      p_stale_after: `${staleAfterMinutes} minutes`,
     });
+    if (error) throw error;
+    const rows = data as RepositoryRow[];
+    return rows.length > 0 ? toRepository(rows[0]) : null;
+  },
+
+  /** GitHub's numeric installation id for the App installation that grants this repository */
+  async findInstallationGithubId(id: string): Promise<number | null> {
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('github_installations(installation_id)')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    const row = data as unknown as { github_installations: { installation_id: number } | null } | null;
+    return row?.github_installations?.installation_id ?? null;
   },
 
   async markSyncSucceeded(id: string, syncedAt: string): Promise<void> {

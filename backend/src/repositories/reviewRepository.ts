@@ -1,5 +1,8 @@
 import { supabase } from '../config/supabase';
 import type { Review } from '../types';
+import { chunk } from '../utils/batch';
+
+const UPSERT_BATCH = 500;
 
 interface ReviewRow {
   id: string;
@@ -41,11 +44,12 @@ export const reviewRepository = {
   async upsertMany(
     reviews: Omit<ReviewRow, 'id' | 'created_at'>[],
   ): Promise<void> {
-    if (reviews.length === 0) return;
-    const { error } = await supabase
-      .from('reviews')
-      .upsert(reviews, { onConflict: 'github_id,pull_request_id' });
-    if (error) throw error;
+    for (const batch of chunk(reviews, UPSERT_BATCH)) {
+      const { error } = await supabase
+        .from('reviews')
+        .upsert(batch, { onConflict: 'github_id,pull_request_id' });
+      if (error) throw error;
+    }
   },
 
   async findFirstReviewTime(pullRequestId: string): Promise<string | null> {

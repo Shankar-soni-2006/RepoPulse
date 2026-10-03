@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Activity, ExternalLink, Globe, Lock, Building2, RefreshCw, Search } from 'lucide-react';
 import { repositoryService } from '@/services/repositoryService';
 import { useSession, SESSION_QUERY_KEY } from '@/hooks/useSession';
+import { REPOSITORIES_QUERY_KEY, useRepositories, useStartSync } from '@/hooks/useRepository';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import { SyncStatusBadge } from '@/components/repositories/SyncStatusBadge';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States';
@@ -27,12 +28,13 @@ export function RepositoriesPage() {
   const [visibility, setVisibility] = useState<VisibilityFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
 
-  const reposQuery = useQuery({ queryKey: ['repositories'], queryFn: repositoryService.list });
+  const reposQuery = useRepositories();
+  const startSync = useStartSync();
 
   const discover = useMutation({
     mutationFn: repositoryService.discover,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repositories'] });
+      queryClient.invalidateQueries({ queryKey: REPOSITORIES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
     },
   });
@@ -91,6 +93,11 @@ export function RepositoriesPage() {
         {discover.isError && (
           <p role="alert" className="mb-3 text-xs text-destructive">
             Couldn’t refresh from GitHub: {discover.error.message}
+          </p>
+        )}
+        {startSync.isError && (
+          <p role="alert" className="mb-3 text-xs text-destructive">
+            Couldn’t start sync: {startSync.error.message}
           </p>
         )}
         {discover.isSuccess && (
@@ -158,6 +165,9 @@ export function RepositoriesPage() {
                     <Th>Default branch</Th>
                     <Th>Last synced</Th>
                     <Th>Status</Th>
+                    <Th className="text-right">
+                      <span className="sr-only">Actions</span>
+                    </Th>
                   </tr>
                 </Thead>
                 <Tbody>
@@ -186,6 +196,22 @@ export function RepositoriesPage() {
                         </Td>
                         <Td>
                           <SyncStatusBadge repository={repo} />
+                        </Td>
+                        <Td className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={repo.syncStatus === 'syncing'}
+                            loading={startSync.isPending && startSync.variables === repo.id}
+                            onClick={(e) => {
+                              e.stopPropagation(); // don't open the repository
+                              startSync.mutate(repo.id);
+                            }}
+                            aria-label={`Sync ${repo.fullName}`}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Sync
+                          </Button>
                         </Td>
                       </Tr>
                     );

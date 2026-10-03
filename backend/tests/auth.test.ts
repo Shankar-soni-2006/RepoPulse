@@ -152,13 +152,6 @@ describe('repository authorization', () => {
       .send({ repositoryId: REPO_ID, period: { from: '2026-09-01', to: '2026-09-30' } });
     expect(res.status).toBe(404);
   });
-
-  it('reports sync as not available rather than pretending it started', async () => {
-    vi.mocked(accessRepository.hasRepositoryAccess).mockResolvedValue(true);
-    const res = await request(app).post(`/api/repositories/${REPO_ID}/sync`).set(authHeaders);
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('SYNC_NOT_AVAILABLE');
-  });
 });
 
 describe('OAuth flow', () => {

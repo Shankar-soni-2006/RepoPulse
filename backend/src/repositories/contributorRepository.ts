@@ -1,5 +1,9 @@
 import { supabase } from '../config/supabase';
 import type { Contributor } from '../types';
+import { chunk } from '../utils/batch';
+
+const UPSERT_BATCH = 500;
+const PAGE_SIZE = 1000; // PostgREST's default max rows per request
 
 interface ContributorRow {
   id: string;
@@ -18,6 +22,11 @@ interface ContributorRow {
   created_at: string;
   updated_at: string;
 }
+
+export type ContributorIdentity = Pick<
+  ContributorRow,
+  'github_id' | 'repository_id' | 'login' | 'avatar_url'
+>;
 
 function toContributor(row: ContributorRow): Contributor {
   return {
@@ -48,37 +57,29 @@ export const contributorRepository = {
     return (data as ContributorRow[]).map(toContributor);
   },
 
-  async findByLogin(repositoryId: string, login: string): Promise<Contributor | null> {
-    const { data, error } = await supabase
-      .from('contributors')
-      .select('*')
-      .eq('repository_id', repositoryId)
-      .eq('login', login)
-      .single();
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw error;
+  async upsertIdentities(rows: ContributorIdentity[]): Promise<void> {
+    // Identity columns only; activity counters are owned by the analytics engine
+    for (const batch of chunk(rows, UPSERT_BATCH)) {
+      const { error } = await supabase
+        .from('contributors')
+        .upsert(batch, { onConflict: 'github_id,repository_id' });
+      if (error) throw error;
     }
-    return toContributor(data as ContributorRow);
   },
 
-  async upsertMany(
-    contributors: Omit<ContributorRow, 'id' | 'created_at' | 'updated_at'>[],
-  ): Promise<void> {
-    if (contributors.length === 0) return;
-    const { error } = await supabase
-      .from('contributors')
-      .upsert(contributors, { onConflict: 'github_id,repository_id' });
-    if (error) throw error;
-  },
-
-  async incrementReviewCount(repositoryId: string, login: string): Promise<void> {
-    const contributor = await this.findByLogin(repositoryId, login);
-    if (!contributor) return;
-    const { error } = await supabase
-      .from('contributors')
-      .update({ review_count: contributor.reviewCount + 1 })
-      .eq('id', contributor.id);
-    if (error) throw error;
+  /** GitHub user id → contributor id for every contributor in the repository */
+  async findIdMap(repositoryId: string): Promise<Map<number, string>> {
+    const map = new Map<number, string>();
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('contributors')
+        .select('id, github_id')
+        .eq('repository_id', repositoryId)
+        .order('id')
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      for (const row of data as { id: string; github_id: number }[]) map.set(row.github_id, row.id);
+      if (data.length < PAGE_SIZE) return map;
+    }
   },
 };

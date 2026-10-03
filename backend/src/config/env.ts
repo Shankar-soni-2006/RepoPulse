@@ -31,6 +31,9 @@ const envSchema = z.object({
     .refine((v) => Buffer.from(v, 'base64').length === 32, {
       message: 'must be 32 bytes encoded as base64 (e.g. `openssl rand -base64 32`)',
     }),
+  // How far back the first sync of a repository reads (later syncs are incremental)
+  SYNC_LOOKBACK_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
+
   // `none` is only needed when frontend and API are on different sites
   SESSION_COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 });

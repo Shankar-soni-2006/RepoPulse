@@ -3,10 +3,18 @@ import type {
   GHPullRequest,
   GHReview,
   GHCommit,
-  GHContributor,
+  GHUser,
 } from './githubService';
 
-// ---- Normalized insert shapes (no id/created_at) ----
+// GitHub API shapes stop here: everything below returns RepoPulse row shapes.
+
+/** GitHub user id → RepoPulse contributor id, for one repository */
+export type ContributorIdMap = Map<number, string>;
+
+// GitHub shows deleted accounts as "ghost"
+const GHOST_LOGIN = 'ghost';
+
+// ---- Normalized insert shapes (no id / bookkeeping columns) ----
 
 export interface NormalizedRepository {
   github_id: number;
@@ -20,6 +28,13 @@ export interface NormalizedRepository {
   stargazers_count: number;
   forks_count: number;
   open_issues_count: number;
+}
+
+export interface NormalizedContributorIdentity {
+  github_id: number;
+  repository_id: string;
+  login: string;
+  avatar_url: string | null;
 }
 
 export interface NormalizedPullRequest {
@@ -44,13 +59,15 @@ export interface NormalizedPullRequest {
   closed_at: string | null;
 }
 
+export type ReviewState = 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending';
+
 export interface NormalizedReview {
   github_id: number;
   pull_request_id: string;
   repository_id: string;
   contributor_id: string | null;
   reviewer_login: string;
-  state: 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending';
+  state: ReviewState;
   submitted_at: string | null; // null for pending reviews
 }
 
@@ -60,25 +77,24 @@ export interface NormalizedCommit {
   contributor_id: string | null;
   author_login: string | null;
   message: string;
-  additions: number | null; // null when GitHub didn't return stats (list endpoint)
+  additions: number | null; // null until the commit's details are fetched
   deletions: number | null;
+  is_merge: boolean;
   committed_at: string;
 }
 
-export interface NormalizedContributor {
-  github_id: number;
-  repository_id: string;
-  login: string;
-  avatar_url: string | null;
-  name: string | null;
-  commit_count: number;
-  pull_request_count: number;
-  review_count: number;
-  additions: number;
-  deletions: number;
-  first_contribution_at: string | null;
-  last_contribution_at: string | null;
+export interface ReviewSummary {
+  reviewCount: number;
+  firstReviewAt: string | null;
 }
+
+const REVIEW_STATES: ReadonlySet<string> = new Set([
+  'approved',
+  'changes_requested',
+  'commented',
+  'dismissed',
+  'pending',
+]);
 
 // ---- Normalizer functions ----
 
@@ -100,33 +116,66 @@ export function normalizeRepository(gh: GHRepository): NormalizedRepository {
   };
 }
 
+export function normalizeContributorIdentity(
+  user: GHUser,
+  repositoryId: string,
+): NormalizedContributorIdentity {
+  return {
+    github_id: user.id,
+    repository_id: repositoryId,
+    login: user.login,
+    avatar_url: user.avatar_url ?? null,
+  };
+}
+
+export function reviewState(gh: GHReview): ReviewState | null {
+  const state = gh.state.toLowerCase();
+  return REVIEW_STATES.has(state) ? (state as ReviewState) : null;
+}
+
+/**
+ * A PR counts as reviewed by submitted reviews from anyone other than its author
+ * (self-review comments don't count). Pending reviews have no submitted_at and are
+ * excluded. Dismissed reviews were submitted, so they count.
+ */
+export function summarizeReviews(reviews: GHReview[], authorGithubId: number | null): ReviewSummary {
+  const submitted = reviews.filter(
+    (r) =>
+      r.submitted_at &&
+      reviewState(r) !== null &&
+      reviewState(r) !== 'pending' &&
+      (authorGithubId === null || r.user?.id !== authorGithubId),
+  );
+  const first = submitted
+    .map((r) => r.submitted_at as string)
+    .sort((a, b) => Date.parse(a) - Date.parse(b))[0];
+  return { reviewCount: submitted.length, firstReviewAt: first ?? null };
+}
+
 export function normalizePullRequest(
   gh: GHPullRequest,
   repositoryId: string,
-  contributorIdMap: Map<string, string>,
+  contributorIds: ContributorIdMap,
+  reviews: ReviewSummary,
 ): NormalizedPullRequest {
   const status: NormalizedPullRequest['status'] =
     gh.merged_at ? 'merged' : gh.state === 'closed' ? 'closed' : 'open';
 
-  const authorLogin = gh.user?.login ?? 'unknown';
-  const contributorId = contributorIdMap.get(authorLogin) ?? null;
-
-  // review_count / first_review_at are filled in once reviews are fetched
   return {
     github_id: gh.id,
     repository_id: repositoryId,
-    contributor_id: contributorId,
+    contributor_id: gh.user ? (contributorIds.get(gh.user.id) ?? null) : null,
     number: gh.number,
     title: gh.title,
     body: gh.body,
-    author_login: authorLogin,
+    author_login: gh.user?.login ?? GHOST_LOGIN,
     status,
     labels: gh.labels.map((l) => l.name).filter((n): n is string => !!n),
     additions: gh.additions,
     deletions: gh.deletions,
     changed_files: gh.changed_files,
-    review_count: 0,
-    first_review_at: null,
+    review_count: reviews.reviewCount,
+    first_review_at: reviews.firstReviewAt,
     created_at: gh.created_at,
     updated_at: gh.updated_at,
     merged_at: gh.merged_at,
@@ -134,25 +183,21 @@ export function normalizePullRequest(
   };
 }
 
+/** Returns null for review states RepoPulse doesn't recognise (skipped, never guessed). */
 export function normalizeReview(
   gh: GHReview,
   pullRequestId: string,
   repositoryId: string,
-  contributorIdMap: Map<string, string>,
-): NormalizedReview {
-  const reviewerLogin = gh.user?.login ?? 'unknown';
-  const rawState = gh.state.toLowerCase();
-  const validStates = ['approved', 'changes_requested', 'commented', 'dismissed', 'pending'];
-  const state = validStates.includes(rawState)
-    ? (rawState as NormalizedReview['state'])
-    : 'commented';
-
+  contributorIds: ContributorIdMap,
+): NormalizedReview | null {
+  const state = reviewState(gh);
+  if (!state) return null;
   return {
     github_id: gh.id,
     pull_request_id: pullRequestId,
     repository_id: repositoryId,
-    contributor_id: contributorIdMap.get(reviewerLogin) ?? null,
-    reviewer_login: reviewerLogin,
+    contributor_id: gh.user ? (contributorIds.get(gh.user.id) ?? null) : null,
+    reviewer_login: gh.user?.login ?? GHOST_LOGIN,
     state,
     submitted_at: gh.submitted_at ?? null,
   };
@@ -161,39 +206,20 @@ export function normalizeReview(
 export function normalizeCommit(
   gh: GHCommit,
   repositoryId: string,
-  contributorIdMap: Map<string, string>,
+  contributorIds: ContributorIdMap,
 ): NormalizedCommit {
-  const authorLogin = gh.author?.login ?? null;
   const committedAt = gh.commit.author?.date ?? gh.commit.committer?.date;
   if (!committedAt) throw new Error(`Commit ${gh.sha} has no author or committer date`);
+  const hasStats = gh.stats?.additions !== undefined && gh.stats?.deletions !== undefined;
   return {
     sha: gh.sha,
     repository_id: repositoryId,
-    contributor_id: authorLogin ? (contributorIdMap.get(authorLogin) ?? null) : null,
-    author_login: authorLogin,
+    contributor_id: gh.author ? (contributorIds.get(gh.author.id) ?? null) : null,
+    author_login: gh.author?.login ?? null,
     message: gh.commit.message.split('\n')[0].slice(0, 500),
-    additions: gh.stats?.additions ?? null,
-    deletions: gh.stats?.deletions ?? null,
+    additions: hasStats ? (gh.stats?.additions as number) : null,
+    deletions: hasStats ? (gh.stats?.deletions as number) : null,
+    is_merge: gh.parents.length > 1,
     committed_at: committedAt,
-  };
-}
-
-export function normalizeContributor(
-  gh: GHContributor,
-  repositoryId: string,
-): NormalizedContributor {
-  return {
-    github_id: gh.id,
-    repository_id: repositoryId,
-    login: gh.login,
-    avatar_url: gh.avatar_url,
-    name: gh.name ?? null,
-    commit_count: gh.contributions,
-    pull_request_count: 0,
-    review_count: 0,
-    additions: 0,
-    deletions: 0,
-    first_contribution_at: null,
-    last_contribution_at: null,
   };
 }

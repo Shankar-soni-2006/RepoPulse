@@ -234,3 +234,32 @@ describe('schema hygiene', () => {
     expect(noRls.rows).toEqual([]);
   });
 });
+
+describe('claim_repository_sync', () => {
+  const claim = async (stale = '30 minutes') =>
+    (await db.query<{ id: string }>(`select id from claim_repository_sync('${REPO}', interval '${stale}')`)).rows;
+
+  it('claims an idle repository exactly once', async () => {
+    await db.exec(`update repositories set sync_status = 'idle', sync_error = 'old' where id = '${REPO}'`);
+    expect(await claim()).toHaveLength(1);
+    const r = await one<{ sync_status: string; sync_error: string | null; sync_started_at: Date | null }>(
+      `select sync_status, sync_error, sync_started_at from repositories where id = '${REPO}'`,
+    );
+    expect(r.sync_status).toBe('syncing');
+    expect(r.sync_error).toBeNull();
+    expect(r.sync_started_at).not.toBeNull();
+    expect(await claim()).toHaveLength(0); // second caller loses
+  });
+
+  it('reclaims an abandoned sync after the stale interval', async () => {
+    await db.exec(
+      `update repositories set sync_status = 'syncing', sync_started_at = now() - interval '2 hours' where id = '${REPO}'`,
+    );
+    expect(await claim('30 minutes')).toHaveLength(1);
+  });
+
+  it('defaults commits to non-merge', async () => {
+    const c = await one<{ is_merge: boolean }>(`select is_merge from commits where sha = 'abc'`);
+    expect(c.is_merge).toBe(false);
+  });
+});

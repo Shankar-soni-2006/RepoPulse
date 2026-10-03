@@ -1,5 +1,8 @@
 import { supabase } from '../config/supabase';
 import type { Paginated, PullRequest } from '../types';
+import { chunk } from '../utils/batch';
+
+const UPSERT_BATCH = 200; // PR bodies can be large
 
 interface PullRequestRow {
   id: string;
@@ -113,12 +116,18 @@ export const pullRequestRepository = {
     return toPullRequest(data as PullRequestRow);
   },
 
-  async upsertMany(prs: PullRequestInsert[]): Promise<void> {
-    if (prs.length === 0) return;
-    const { error } = await supabase
-      .from('pull_requests')
-      .upsert(prs, { onConflict: 'github_id,repository_id' });
-    if (error) throw error;
+  /** Idempotent on (github_id, repository_id). Returns GitHub PR id → RepoPulse id. */
+  async upsertMany(prs: PullRequestInsert[]): Promise<Map<number, string>> {
+    const ids = new Map<number, string>();
+    for (const batch of chunk(prs, UPSERT_BATCH)) {
+      const { data, error } = await supabase
+        .from('pull_requests')
+        .upsert(batch, { onConflict: 'github_id,repository_id' })
+        .select('id, github_id');
+      if (error) throw error;
+      for (const row of data as { id: string; github_id: number }[]) ids.set(row.github_id, row.id);
+    }
+    return ids;
   },
 
   async updateReviewData(
