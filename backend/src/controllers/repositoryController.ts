@@ -1,22 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
 import { repositoryRepository } from '../repositories/repositoryRepository';
-import { syncRepository as runSync } from '../services/sync/syncService';
+import { getAuth } from '../middleware/auth';
+import { sessionService } from '../services/auth/sessionService';
+import { discoverForUser } from '../services/github/discoveryService';
 import { sendSuccess } from '../utils/response';
-import { NotFoundError } from '../utils/errors';
+import { AppError, NotFoundError } from '../utils/errors';
 
 export async function listRepositories(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const repos = await repositoryRepository.findAll();
+    const repos = await repositoryRepository.findAllForUser(getAuth(req).user.id);
     sendSuccess(res, repos);
   } catch (err) {
     next(err);
   }
 }
 
+// Re-reads the user's installations/repositories from GitHub (e.g. after installing the App)
+export async function discoverRepositories(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { user, session } = getAuth(req);
+    const accessToken = await sessionService.getAccessToken(session);
+    sendSuccess(res, await discoverForUser(user.id, accessToken));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Access already checked by requireRepositoryAccess
 export async function getRepository(
   req: Request,
   res: Response,
@@ -32,21 +50,10 @@ export async function getRepository(
 }
 
 export async function syncRepository(
-  req: Request,
-  res: Response,
+  _req: Request,
+  _res: Response,
   next: NextFunction,
 ): Promise<void> {
-  try {
-    const repo = await repositoryRepository.findById(req.params.repositoryId);
-    if (!repo) throw new NotFoundError('Repository');
-
-    // Run sync in background — respond immediately
-    runSync(repo).catch((err) =>
-      console.error(`Sync failed for ${repo.fullName}:`, err),
-    );
-
-    sendSuccess(res, { message: `Sync started for ${repo.fullName}` });
-  } catch (err) {
-    next(err);
-  }
+  // The sync engine lands in Phase 5; until then, say so rather than pretend a sync started
+  next(new AppError('SYNC_NOT_AVAILABLE', 'Repository synchronization is not available yet', 501));
 }

@@ -24,6 +24,11 @@ interface RepositoryRow {
   updated_at: string;
 }
 
+export type RepositoryMetadata = Omit<
+  RepositoryRow,
+  'id' | 'created_at' | 'updated_at' | 'sync_status' | 'sync_error' | 'sync_started_at' | 'last_synced_at'
+>;
+
 function toRepository(row: RepositoryRow): Repository {
   return {
     id: row.id,
@@ -47,11 +52,24 @@ function toRepository(row: RepositoryRow): Repository {
 }
 
 export const repositoryRepository = {
-  async findAll(): Promise<Repository[]> {
+  // Only repositories the user has been granted via GitHub (user_repositories)
+  async findAllForUser(userId: string): Promise<Repository[]> {
     const { data, error } = await supabase
       .from('repositories')
-      .select('*')
+      .select('*, user_repositories!inner(user_id)')
+      .eq('user_repositories.user_id', userId)
       .order('full_name');
+    if (error) throw error;
+    return (data as RepositoryRow[]).map(toRepository);
+  },
+
+  // Metadata only; returns the stored rows so callers get RepoPulse ids
+  async upsertMany(repos: RepositoryMetadata[]): Promise<Repository[]> {
+    if (repos.length === 0) return [];
+    const { data, error } = await supabase
+      .from('repositories')
+      .upsert(repos, { onConflict: 'github_id' })
+      .select();
     if (error) throw error;
     return (data as RepositoryRow[]).map(toRepository);
   },
@@ -82,13 +100,8 @@ export const repositoryRepository = {
     return toRepository(data as RepositoryRow);
   },
 
-  // Metadata only — sync bookkeeping columns are owned by the update* methods below
-  async upsert(
-    repo: Omit<
-      RepositoryRow,
-      'id' | 'created_at' | 'updated_at' | 'sync_status' | 'sync_error' | 'sync_started_at' | 'last_synced_at'
-    >,
-  ): Promise<Repository> {
+  // Metadata only — sync bookkeeping columns are owned by the mark* methods below
+  async upsert(repo: RepositoryMetadata): Promise<Repository> {
     const { data, error } = await supabase
       .from('repositories')
       .upsert(repo, { onConflict: 'github_id' })

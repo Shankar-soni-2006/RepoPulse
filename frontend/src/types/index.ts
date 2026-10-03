@@ -22,6 +22,10 @@ export type {
   AIInsightRequest,
   AIInsight,
   AIInsightResponse,
+  SessionUser,
+  InstallationSummary,
+  SessionInfo,
+  DiscoveryResult,
 } from '@shared/contracts';
 
 import type { PullRequestStatus } from '@shared/contracts';

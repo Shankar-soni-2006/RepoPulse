@@ -23,6 +23,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        // Required by the backend CSRF guard on state-changing requests
+        'X-RepoPulse-Client': 'web',
         ...options?.headers,
       },
     });

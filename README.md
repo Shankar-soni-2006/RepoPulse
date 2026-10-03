@@ -33,7 +33,8 @@ npm run install:all
 cp .env.example backend/.env                  # fill in required values
 cp frontend/.env.example frontend/.env
 ```
-Register `${BACKEND_URL}/api/auth/callback` as the callback URL in your GitHub App.
+Create and configure the GitHub App first: see `docs/architecture/github-app-setup.md`.
+Generate `TOKEN_ENCRYPTION_KEY` with `openssl rand -base64 32`.
 
 ### 3. Run database migrations
 Apply `supabase/migrations/*.sql` via the Supabase CLI or dashboard.

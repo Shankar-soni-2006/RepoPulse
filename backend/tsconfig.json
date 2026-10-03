@@ -15,8 +15,6 @@
     "paths": {
       "@shared/*": ["./../shared/*"]
     },
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true
   },
   "include": ["src/**/*"],

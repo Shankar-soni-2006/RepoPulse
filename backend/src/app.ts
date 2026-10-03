@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './config/env';
 import { errorMiddleware, notFoundMiddleware } from './middleware/error';
-import { sessionMiddleware } from './middleware/session';
+import { authenticate, requireClientHeader } from './middleware/auth';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
 import repositoriesRouter from './routes/repositories';
@@ -21,7 +21,12 @@ app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 app.use('/api/webhooks', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
-app.use(sessionMiddleware);
+
+// Session cookie → req.auth (routes decide whether auth is required)
+app.use(authenticate);
+
+// CSRF guard for cookie-authenticated mutations (webhooks authenticate by signature instead)
+app.use(['/api/auth', '/api/repositories', '/api/pull-requests', '/api/ai'], requireClientHeader);
 
 // ---- Routes ----
 app.use('/api/health', healthRouter);

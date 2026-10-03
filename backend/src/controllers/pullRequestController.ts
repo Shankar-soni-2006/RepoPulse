@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pullRequestRepository } from '../repositories/pullRequestRepository';
 import { sendSuccess } from '../utils/response';
 import { NotFoundError } from '../utils/errors';
+import { assertRepositoryAccess, getAuth } from '../middleware/auth';
 
 const querySchema = z.object({
   status: z.enum(['open', 'closed', 'merged']).optional(),
@@ -38,6 +39,10 @@ export async function getPullRequest(
   try {
     const pr = await pullRequestRepository.findById(req.params.pullRequestId);
     if (!pr) throw new NotFoundError('Pull request');
+    // Report a PR in an inaccessible repository as missing, not forbidden
+    await assertRepositoryAccess(getAuth(req).user.id, pr.repositoryId).catch((err: unknown) => {
+      throw err instanceof NotFoundError ? new NotFoundError('Pull request') : err;
+    });
     sendSuccess(res, pr);
   } catch (err) {
     next(err);

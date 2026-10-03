@@ -6,13 +6,15 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@octokit/app": "^15.1.0",
     "@octokit/auth-app": "^7.2.2",
+    "@octokit/plugin-retry": "^7.2.1",
+    "@octokit/plugin-throttling": "^9.6.1",
     "@octokit/rest": "^21.0.2",
     "@supabase/supabase-js": "^2.47.0",
     "@upstash/redis": "^1.34.3",

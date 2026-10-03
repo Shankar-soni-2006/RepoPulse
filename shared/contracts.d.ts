@@ -171,3 +171,31 @@ export interface AIInsightResponse {
   insights: AIInsight[];
   dataLimitations: string[];
 }
+
+// ---- Auth / session ----
+
+export interface SessionUser {
+  id: string;
+  login: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+export interface InstallationSummary {
+  id: string;
+  accountLogin: string;
+  accountType: 'User' | 'Organization';
+}
+
+export interface SessionInfo {
+  user: SessionUser;
+  /** GitHub App installations visible to this user */
+  installations: InstallationSummary[];
+  /** Where the user can install the GitHub App on more accounts; null if unavailable */
+  installUrl: string | null;
+}
+
+export interface DiscoveryResult {
+  installations: number;
+  repositories: number;
+}

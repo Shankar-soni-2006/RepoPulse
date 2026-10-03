@@ -22,6 +22,10 @@ export type {
   AIInsightRequest,
   AIInsight,
   AIInsightResponse,
+  SessionUser,
+  InstallationSummary,
+  SessionInfo,
+  DiscoveryResult,
 } from '@shared/contracts';
 
 // ============================================================
@@ -71,4 +75,31 @@ export interface WebhookEvent {
   processingError: string | null;
   processedAt: string | null;
   createdAt: string;
+}
+
+export interface User {
+  id: string;
+  githubId: number;
+  login: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+// Server-side session. Tokens stay encrypted until a GitHub call needs them.
+export interface Session {
+  id: string;
+  userId: string;
+  encryptedAccessToken: string;
+  accessTokenExpiresAt: string | null;
+  encryptedRefreshToken: string | null;
+  refreshTokenExpiresAt: string | null;
+  expiresAt: string;
+  lastSeenAt: string;
+}
+
+export interface GitHubInstallation {
+  id: string;
+  installationId: number;
+  accountLogin: string;
+  accountType: 'User' | 'Organization';
 }

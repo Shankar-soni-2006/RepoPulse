@@ -1,137 +1,76 @@
 import { Request, Response, NextFunction } from 'express';
-import { githubApp } from '../config/github';
+import { z } from 'zod';
 import { env } from '../config/env';
-import { supabase } from '../config/supabase';
+import { authService } from '../services/auth/authService';
+import { sessionService, SESSION_TTL_SECONDS } from '../services/auth/sessionService';
+import { getAuth } from '../middleware/auth';
+import { sendSuccess } from '../utils/response';
+import { AppError } from '../utils/errors';
 import {
-  setSession,
-  deleteSession,
-  generateSessionId,
-  getSession,
-} from '../middleware/session';
-import { sendSuccess, sendError } from '../utils/response';
+  clearCookie,
+  OAUTH_STATE_COOKIE,
+  readCookie,
+  SESSION_COOKIE,
+  setCookie,
+} from '../utils/cookies';
 
-// Step 1: Redirect to GitHub OAuth
+const OAUTH_STATE_TTL_SECONDS = 10 * 60;
+
+const callbackQuery = z.object({
+  code: z.string().min(1).optional(),
+  state: z.string().min(1).optional(),
+  error: z.string().optional(), // e.g. access_denied when the user cancels
+});
+
+// The callback is a browser navigation, so failures redirect to the login page
+// with a code the frontend can explain, instead of returning JSON.
+function redirectToLogin(res: Response, errorCode: string): void {
+  res.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(errorCode)}`);
+}
+
 export function handleGithubLogin(_req: Request, res: Response): void {
-  // GitHub Apps don't take OAuth scopes — permissions come from the App's configuration
-  const { url } = githubApp.oauth.getWebFlowAuthorizationUrl({
-    redirectUrl: `${env.BACKEND_URL}/api/auth/callback`,
-  });
+  const { url, state } = authService.beginLogin();
+  // Lax: must survive the top-level redirect back from github.com
+  setCookie(res, OAUTH_STATE_COOKIE, state, { maxAgeSeconds: OAUTH_STATE_TTL_SECONDS, sameSite: 'lax' });
   res.redirect(url);
 }
 
-// Step 2: Handle OAuth callback
-export async function handleGithubCallback(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export async function handleGithubCallback(req: Request, res: Response): Promise<void> {
+  const expectedState = readCookie(req, OAUTH_STATE_COOKIE);
+  clearCookie(res, OAUTH_STATE_COOKIE, 'lax');
+
+  const parsed = callbackQuery.safeParse(req.query);
+  if (!parsed.success) return redirectToLogin(res, 'invalid_callback');
+  const { code, state, error } = parsed.data;
+
+  if (error) return redirectToLogin(res, error === 'access_denied' ? 'access_denied' : 'github_error');
+  if (!code) return redirectToLogin(res, 'invalid_callback');
+  if (!expectedState || state !== expectedState) return redirectToLogin(res, 'state_mismatch');
+
   try {
-    const code = req.query.code as string;
-    if (!code) {
-      sendError(res, 400, 'MISSING_CODE', 'Missing OAuth code');
-      return;
-    }
-
-    // Exchange code for token
-    const { authentication } = await githubApp.oauth.createToken({ code });
-    const accessToken = authentication.token;
-
-    // Get GitHub user
-    const { Octokit } = await import('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-    const { data: ghUser } = await octokit.users.getAuthenticated();
-
-    // Upsert user in DB
-    const { data: user, error } = await supabase
-      .from('users')
-      .upsert(
-        {
-          github_id: ghUser.id,
-          login: ghUser.login,
-          name: ghUser.name ?? null,
-          email: ghUser.email ?? null,
-          avatar_url: ghUser.avatar_url,
-        },
-        { onConflict: 'github_id' },
-      )
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Get installations accessible to this user
-    const { data: installationsData } = await octokit.apps.listInstallationsForAuthenticatedUser({
-      per_page: 100,
-    });
-    const installations = installationsData.installations;
-
-    // Upsert installations
-    let primaryInstallationId: number | null = null;
-    for (const inst of installations) {
-      // Enterprise installations have no `login`/`type`; RepoPulse only supports user/org accounts
-      const account = inst.account;
-      if (!account || !('login' in account)) continue;
-      if (account.type !== 'User' && account.type !== 'Organization') continue;
-
-      // Installations are shared (an org install is visible to many users); access is
-      // recorded in user_installations. Tokens are never stored on the installation.
-      const { data: installation, error: installationError } = await supabase
-        .from('github_installations')
-        .upsert(
-          {
-            installation_id: inst.id,
-            app_id: inst.app_id,
-            account_login: account.login,
-            account_type: account.type,
-          },
-          { onConflict: 'installation_id' },
-        )
-        .select('id')
-        .single();
-      if (installationError) throw installationError;
-
-      const { error: accessError } = await supabase
-        .from('user_installations')
-        .upsert(
-          { user_id: user.id, installation_id: installation.id },
-          { onConflict: 'user_id,installation_id', ignoreDuplicates: true },
-        );
-      if (accessError) throw accessError;
-
-      if (!primaryInstallationId) primaryInstallationId = inst.id;
-    }
-
-    // Create session
-    const sessionId = generateSessionId();
-    setSession(sessionId, {
-      userId: user.id,
-      login: ghUser.login,
-      accessToken,
-      installationId: primaryInstallationId,
-    });
-
-    // Redirect to frontend with session cookie
-    res.setHeader(
-      'Set-Cookie',
-      `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
-    );
+    const sessionToken = await authService.completeLogin(code);
+    setCookie(res, SESSION_COOKIE, sessionToken, { maxAgeSeconds: SESSION_TTL_SECONDS });
     res.redirect(`${env.FRONTEND_URL}/repositories`);
+  } catch (err) {
+    console.error('[auth] sign-in failed:', err);
+    redirectToLogin(res, err instanceof AppError ? err.code.toLowerCase() : 'sign_in_failed');
+  }
+}
+
+export async function handleLogout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (req.auth) await sessionService.destroy(req.auth.session.id);
+    clearCookie(res, SESSION_COOKIE);
+    sendSuccess(res, { signedOut: true });
   } catch (err) {
     next(err);
   }
 }
 
-export function handleLogout(req: Request, res: Response): void {
-  if (req.sessionId) deleteSession(req.sessionId);
-  res.setHeader('Set-Cookie', 'session=; Path=/; HttpOnly; Max-Age=0');
-  res.redirect(`${env.FRONTEND_URL}`);
-}
-
-export function handleMe(req: Request, res: Response): void {
-  const session = req.sessionId ? getSession(req.sessionId) : undefined;
-  if (!session) {
-    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
-    return;
+export async function handleMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    sendSuccess(res, await authService.getSessionInfo(getAuth(req).user));
+  } catch (err) {
+    next(err);
   }
-  sendSuccess(res, { login: session.login, installationId: session.installationId });
 }

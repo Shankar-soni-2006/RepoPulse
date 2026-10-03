@@ -24,6 +24,15 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   // Public URL of this API — used to build the GitHub OAuth callback URL
   BACKEND_URL: z.string().url().default('http://localhost:3001'),
+
+  // 32 random bytes, base64-encoded. Encrypts GitHub user tokens at rest.
+  TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, 'base64').length === 32, {
+      message: 'must be 32 bytes encoded as base64 (e.g. `openssl rand -base64 32`)',
+    }),
+  // `none` is only needed when frontend and API are on different sites
+  SESSION_COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 });
 
 const parsed = envSchema.safeParse(process.env);

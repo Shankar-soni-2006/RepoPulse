@@ -1,7 +1,4 @@
-import { Octokit } from '@octokit/rest';
-import { createAppAuth } from '@octokit/auth-app';
-import { githubAppCredentials } from '../../config/github';
-import { GitHubError } from '../../utils/errors';
+import { createInstallationOctokit, toGitHubError, type GitHubClient } from './octokit';
 
 // ---- Types returned by GitHub API (relevant fields only) ----
 
@@ -82,18 +79,11 @@ export interface GHContributor {
 // ---- GitHub Service ----
 
 export class GitHubService {
-  private readonly octokit: Octokit;
+  private readonly octokit: GitHubClient;
 
-  // Installation-scoped client; auth-app mints and refreshes installation tokens automatically
+  // Installation-scoped client (rate-limit aware, auto-refreshing installation token)
   constructor(installationId: number) {
-    this.octokit = new Octokit({
-      authStrategy: createAppAuth,
-      auth: {
-        appId: githubAppCredentials.appId,
-        privateKey: githubAppCredentials.privateKey,
-        installationId,
-      },
-    });
+    this.octokit = createInstallationOctokit(installationId);
   }
 
   async getRepository(owner: string, repo: string): Promise<GHRepository> {
@@ -101,7 +91,7 @@ export class GitHubService {
       const { data } = await this.octokit.repos.get({ owner, repo });
       return data as GHRepository;
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch repository ${owner}/${repo}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch repository ${owner}/${repo}`);
     }
   }
 
@@ -116,7 +106,7 @@ export class GitHubService {
       }
       return repos;
     } catch (err: unknown) {
-      throw new GitHubError('Failed to list installation repositories', (err as { status?: number }).status);
+      throw toGitHubError(err, 'Failed to list installation repositories');
     }
   }
 
@@ -131,7 +121,7 @@ export class GitHubService {
       }
       return prs;
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch pull requests for ${owner}/${repo}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch pull requests for ${owner}/${repo}`);
     }
   }
 
@@ -140,21 +130,20 @@ export class GitHubService {
       const { data } = await this.octokit.pulls.get({ owner, repo, pull_number: pullNumber });
       return data as GHPullRequest;
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch PR #${pullNumber}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch PR #${pullNumber}`);
     }
   }
 
   async listReviews(owner: string, repo: string, pullNumber: number): Promise<GHReview[]> {
     try {
-      const { data } = await this.octokit.pulls.listReviews({
+      return (await this.octokit.paginate(this.octokit.pulls.listReviews, {
         owner,
         repo,
         pull_number: pullNumber,
         per_page: 100,
-      });
-      return data as GHReview[];
+      })) as GHReview[];
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch reviews for PR #${pullNumber}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch reviews for PR #${pullNumber}`);
     }
   }
 
@@ -176,7 +165,7 @@ export class GitHubService {
       }
       return commits;
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch commits for ${owner}/${repo}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch commits for ${owner}/${repo}`);
     }
   }
 
@@ -191,25 +180,7 @@ export class GitHubService {
       }
       return contributors;
     } catch (err: unknown) {
-      throw new GitHubError(`Failed to fetch contributors for ${owner}/${repo}`, (err as { status?: number }).status);
+      throw toGitHubError(err, `Failed to fetch contributors for ${owner}/${repo}`);
     }
   }
-}
-
-// ---- User-authenticated Octokit (OAuth token) ----
-
-export function createUserOctokit(accessToken: string): Octokit {
-  return new Octokit({ auth: accessToken });
-}
-
-export async function getAuthenticatedUser(accessToken: string) {
-  const octokit = createUserOctokit(accessToken);
-  const { data } = await octokit.users.getAuthenticated();
-  return data;
-}
-
-export async function listUserInstallations(accessToken: string) {
-  const octokit = createUserOctokit(accessToken);
-  const { data } = await octokit.apps.listInstallationsForAuthenticatedUser({ per_page: 100 });
-  return data.installations;
 }

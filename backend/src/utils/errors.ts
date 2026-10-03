@@ -16,8 +16,14 @@ export class NotFoundError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = 'Unauthorized') {
-    super('UNAUTHORIZED', message, 401);
+  constructor(message = 'Unauthorized', code = 'UNAUTHORIZED') {
+    super(code, message, 401);
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = 'Forbidden', code = 'FORBIDDEN') {
+    super(code, message, 403);
   }
 }
 
@@ -28,7 +34,12 @@ export class ValidationError extends AppError {
 }
 
 export class GitHubError extends AppError {
-  constructor(message: string, public readonly githubStatus?: number) {
-    super('GITHUB_ERROR', message, 502);
+  constructor(
+    message: string,
+    public readonly githubStatus?: number,
+    code = 'GITHUB_ERROR',
+    statusCode = 502,
+  ) {
+    super(code, message, statusCode);
   }
 }

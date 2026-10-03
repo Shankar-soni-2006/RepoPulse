@@ -17,6 +17,7 @@ export default defineConfig({
       SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
       FRONTEND_URL: 'http://localhost:5173',
       BACKEND_URL: 'http://localhost:3001',
+      TOKEN_ENCRYPTION_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
     },
   },
 });
