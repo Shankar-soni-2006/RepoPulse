@@ -190,6 +190,37 @@ describe('OAuth flow', () => {
     expect(res.headers.location).toBe('http://localhost:5173/login?error=access_denied');
   });
 
+  describe('when GitHub rejects the code as already used (duplicate callback)', () => {
+    const usedCode = () =>
+      vi
+        .spyOn(githubApp.oauth, 'createToken')
+        .mockRejectedValue(Object.assign(new Error('bad code'), { status: 400, response: { data: { error: 'bad_verification_code' } } }));
+
+    it('restarts sign-in once instead of failing', async () => {
+      usedCode();
+      const res = await request(app).get('/api/auth/callback?code=used&state=s').set('Cookie', 'rp_oauth_state=s');
+      expect(res.headers.location).toBe('http://localhost:3001/api/auth/github');
+      expect(String(res.headers['set-cookie'])).toContain('rp_oauth_retry=1');
+    });
+
+    it('does not loop: a second failure shows a clear error', async () => {
+      usedCode();
+      const res = await request(app)
+        .get('/api/auth/callback?code=used&state=s')
+        .set('Cookie', 'rp_oauth_state=s; rp_oauth_retry=1');
+      expect(res.headers.location).toBe('http://localhost:5173/login?error=oauth_code_invalid');
+    });
+
+    it('goes to the app when the first request already signed the user in', async () => {
+      usedCode();
+      signedIn();
+      const res = await request(app)
+        .get('/api/auth/callback?code=used&state=s')
+        .set('Cookie', `rp_oauth_state=s; rp_session=${TEST_SESSION_TOKEN}`);
+      expect(res.headers.location).toBe('http://localhost:5173/repositories');
+    });
+  });
+
   it('logs out by deleting the session and clearing the cookie', async () => {
     signedIn();
     vi.mocked(sessionRepository.deleteById).mockResolvedValue();

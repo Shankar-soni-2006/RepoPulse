@@ -4,6 +4,7 @@ import { userRepository } from '../../repositories/userRepository.js';
 import { installationRepository } from '../../repositories/installationRepository.js';
 import type { SessionInfo, User } from '../../types/index.js';
 import { generateToken } from '../../utils/crypto.js';
+import { AppError } from '../../utils/errors.js';
 import { discoverForUser } from '../github/discoveryService.js';
 import { createAppOctokit, createUserOctokit, toGitHubError } from '../github/octokit.js';
 import { sessionService, type GitHubUserTokens } from './sessionService.js';
@@ -41,6 +42,13 @@ export const authService = {
       const { authentication } = await githubApp.oauth.createToken({ code });
       tokens = authentication;
     } catch (err) {
+      // GitHub answers a bad exchange with an OAuth error code (status 400)
+      const oauthError = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
+      if (oauthError === 'bad_verification_code') {
+        // Code already used (e.g. the callback was requested twice) or expired
+        throw new AppError('OAUTH_CODE_INVALID', 'The GitHub sign-in code was already used or has expired', 400);
+      }
+      if (oauthError) console.error(`[auth] GitHub code exchange failed: ${oauthError}`);
       throw toGitHubError(err, 'GitHub sign-in failed');
     }
 

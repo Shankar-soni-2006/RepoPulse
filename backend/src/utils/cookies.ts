@@ -3,6 +3,8 @@ import { env } from '../config/env.js';
 
 export const SESSION_COOKIE = 'rp_session';
 export const OAUTH_STATE_COOKIE = 'rp_oauth_state';
+/** Marks an automatic sign-in restart so a failing exchange can't loop */
+export const OAUTH_RETRY_COOKIE = 'rp_oauth_retry';
 
 export function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.cookie;

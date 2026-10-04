@@ -8,6 +8,7 @@ import { sendSuccess } from '../utils/response.js';
 import { AppError } from '../utils/errors.js';
 import {
   clearCookie,
+  OAUTH_RETRY_COOKIE,
   OAUTH_STATE_COOKIE,
   readCookie,
   SESSION_COOKIE,
@@ -15,6 +16,7 @@ import {
 } from '../utils/cookies.js';
 
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
+const OAUTH_RETRY_TTL_SECONDS = 60;
 
 const callbackQuery = z.object({
   code: z.string().min(1).optional(),
@@ -50,9 +52,21 @@ export async function handleGithubCallback(req: Request, res: Response): Promise
   try {
     const sessionToken = await authService.completeLogin(code);
     setCookie(res, SESSION_COOKIE, sessionToken, { maxAgeSeconds: SESSION_TTL_SECONDS });
+    clearCookie(res, OAUTH_RETRY_COOKIE, 'lax');
     res.redirect(`${env.FRONTEND_URL}/repositories`);
   } catch (err) {
+    if (err instanceof AppError && err.code === 'OAUTH_CODE_INVALID') {
+      // A duplicate callback request: the first one may already have signed the user in
+      if (req.auth) return void res.redirect(`${env.FRONTEND_URL}/repositories`);
+      // Otherwise start over once; GitHub returns a fresh code without asking again
+      if (!readCookie(req, OAUTH_RETRY_COOKIE)) {
+        console.warn('[auth] sign-in code already used or expired; restarting sign-in');
+        setCookie(res, OAUTH_RETRY_COOKIE, '1', { maxAgeSeconds: OAUTH_RETRY_TTL_SECONDS, sameSite: 'lax' });
+        return void res.redirect(`${env.BACKEND_URL}/api/auth/github`);
+      }
+    }
     console.error('[auth] sign-in failed:', err);
+    clearCookie(res, OAUTH_RETRY_COOKIE, 'lax');
     redirectToLogin(res, err instanceof AppError ? err.code.toLowerCase() : 'sign_in_failed');
   }
 }

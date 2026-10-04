@@ -11,6 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: 'The sign-in attempt expired or was started in another tab. Please try again.',
   github_rate_limited: 'GitHub rate limit reached. Please try again in a few minutes.',
   invalid_callback: 'GitHub returned an incomplete response. Please try again.',
+  oauth_code_invalid: 'The GitHub sign-in link was already used or has expired. Please try again.',
 };
 const GENERIC_ERROR = 'Signing in with GitHub failed. Please try again.';
 

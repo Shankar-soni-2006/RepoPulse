@@ -188,6 +188,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 | GitHub: "redirect_uri is not associated with this application" | Callback URL mismatch | App callback = `<frontend>/api/auth/callback`; `BACKEND_URL` = frontend URL |
 | Signed in, but immediately signed out / 401 everywhere | Cookie set for the wrong host | Use the app only via the frontend domain; `BACKEND_URL`/`FRONTEND_URL` = frontend URL |
 | Other users sign in but *Install GitHub App* shows a GitHub 404 | The App is private | App → *Advanced* → **Make public** |
+| "Signing in with GitHub failed"; backend log shows `GITHUB_ERROR` with `githubStatus: 400` | GitHub rejected the sign-in code, usually because the callback was requested twice (slow first sign-in, double click) | Handled automatically: the backend restarts sign-in once (`rp_oauth_retry` cookie) or continues if already signed in. If it persists, check `[auth] GitHub code exchange failed: <reason>` in the logs; `incorrect_client_credentials` means `GITHUB_CLIENT_SECRET` is wrong |
 | Webhook deliveries fail with 401 | Secret mismatch | Same value in GitHub App and `GITHUB_WEBHOOK_SECRET`; Redeploy after changing |
 | Sync stays *Syncing* | Function stopped at its time limit | Wait 10 minutes and sync again; the backfill continues |
 
