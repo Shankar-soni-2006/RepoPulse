@@ -11,7 +11,8 @@
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
     "test": "npm --prefix backend test",
     "sync:repo": "npm --prefix backend run sync:repo --",
-    "webhooks:relay": "npm --prefix backend run webhooks:relay"
+    "webhooks:relay": "npm --prefix backend run webhooks:relay",
+    "metrics:recalculate": "npm --prefix backend run metrics:recalculate --"
   },
   "engines": {
     "node": ">=20"

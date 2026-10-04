@@ -108,17 +108,6 @@ export const repositoryRepository = {
     return toRepository(data as RepositoryRow);
   },
 
-  // Metadata only — sync bookkeeping columns are owned by the mark* methods below
-  async upsert(repo: RepositoryMetadata): Promise<Repository> {
-    const { data, error } = await supabase
-      .from('repositories')
-      .upsert(repo, { onConflict: 'github_id' })
-      .select()
-      .single();
-    if (error) throw error;
-    return toRepository(data as RepositoryRow);
-  },
-
   /**
    * Atomically moves the repository to 'syncing'. Returns null when another sync
    * holds it (a claim older than `staleAfterMinutes` counts as abandoned).

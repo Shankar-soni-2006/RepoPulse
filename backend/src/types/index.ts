@@ -44,22 +44,6 @@ export type {
 // BACKEND-INTERNAL DOMAIN TYPES — not part of the API contract
 // ============================================================
 
-export interface Commit {
-  id: string;
-  sha: string;
-  repositoryId: string;
-  authorId: string | null;
-  authorLogin: string | null;
-  message: string;
-  /** null when GitHub stats were not fetched */
-  additions: number | null;
-  deletions: number | null;
-  /** Merge commits repeat merged changes; excluded from churn */
-  isMerge: boolean;
-  committedAt: string;
-  createdAt: string;
-}
-
 export type WebhookEventStatus = 'received' | 'processing' | 'processed' | 'ignored' | 'failed';
 
 export interface WebhookEvent {

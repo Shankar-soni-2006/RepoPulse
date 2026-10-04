@@ -29,16 +29,6 @@ export const installationRepository = {
     return toInstallation(data as InstallationRow);
   },
 
-  async findById(id: string): Promise<GitHubInstallation | null> {
-    const { data, error } = await supabase
-      .from('github_installations')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return data ? toInstallation(data as InstallationRow) : null;
-  },
-
   async findForUser(userId: string): Promise<GitHubInstallation[]> {
     const { data, error } = await supabase
       .from('user_installations')

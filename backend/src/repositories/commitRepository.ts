@@ -1,5 +1,4 @@
 import { supabase } from '../config/supabase.js';
-import type { Commit } from '../types/index.js';
 import { chunk } from '../utils/batch.js';
 
 const UPSERT_BATCH = 500;
@@ -19,22 +18,6 @@ interface CommitRow {
 }
 
 export type CommitInsert = Omit<CommitRow, 'id' | 'created_at'>;
-
-function toCommit(row: CommitRow): Commit {
-  return {
-    id: row.id,
-    sha: row.sha,
-    repositoryId: row.repository_id,
-    authorId: row.contributor_id,
-    authorLogin: row.author_login,
-    message: row.message,
-    additions: row.additions,
-    deletions: row.deletions,
-    isMerge: row.is_merge,
-    committedAt: row.committed_at,
-    createdAt: row.created_at,
-  };
-}
 
 export const commitRepository = {
   /**
@@ -84,19 +67,4 @@ export const commitRepository = {
     }
   },
 
-  async findByDateRange(
-    repositoryId: string,
-    from: string,
-    to: string,
-  ): Promise<Commit[]> {
-    const { data, error } = await supabase
-      .from('commits')
-      .select('*')
-      .eq('repository_id', repositoryId)
-      .gte('committed_at', from)
-      .lte('committed_at', to)
-      .order('committed_at', { ascending: true });
-    if (error) throw error;
-    return (data as CommitRow[]).map(toCommit);
-  },
 };

@@ -58,6 +58,15 @@ npm test
 npm run build
 ```
 
+## Deployment
+Vercel (frontend), Render (backend), Supabase, Upstash: see `docs/deployment.md`.
+
+## Documentation
+- `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, GitHub App setup
+- `docs/database/schema.md`: tables and integrity rules
+- `docs/deployment.md`: production setup and verification
+- `docs/requirements/acceptance.md`: acceptance criteria and how each is met
+
 ## API Contract
 All responses use `{ "success": true, "data": … }` or
 `{ "success": false, "error": { "code", "message" } }`.

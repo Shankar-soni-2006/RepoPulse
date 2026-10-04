@@ -31,9 +31,4 @@ export const userRepository = {
     return toUser(data as UserRow);
   },
 
-  async findById(id: string): Promise<User | null> {
-    const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data ? toUser(data as UserRow) : null;
-  },
 };

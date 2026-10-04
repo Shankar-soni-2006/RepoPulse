@@ -147,34 +147,6 @@ export const pullRequestRepository = {
     return ids;
   },
 
-  async updateReviewData(
-    id: string,
-    reviewCount: number,
-    firstReviewAt: string | null,
-  ): Promise<void> {
-    // first_review_time is a generated column derived from first_review_at
-    const { error } = await supabase
-      .from('pull_requests')
-      .update({ review_count: reviewCount, first_review_at: firstReviewAt })
-      .eq('id', id);
-    if (error) throw error;
-  },
-
-  async findByDateRange(
-    repositoryId: string,
-    from: string,
-    to: string,
-  ): Promise<PullRequest[]> {
-    const { data, error } = await supabase
-      .from('pull_requests')
-      .select('*')
-      .eq('repository_id', repositoryId)
-      .gte('created_at', from)
-      .lte('created_at', to)
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    return (data as PullRequestRow[]).map(toPullRequest);
-  },
 };
 
 export interface PullRequestEvidence {
