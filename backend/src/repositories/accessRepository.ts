@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabase } from '../config/supabase.js';
 
 // user ↔ installation and user ↔ repository access rows (authorization source of truth)
 

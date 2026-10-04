@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { AppError } from '../utils/errors';
-import { sendError } from '../utils/response';
+import { AppError } from '../utils/errors.js';
+import { sendError } from '../utils/response.js';
 
 // body-parser attaches `type` to the errors it raises
 function isBodyParserError(err: unknown): err is { type: string; status: number } {

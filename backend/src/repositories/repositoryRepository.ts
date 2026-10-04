@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { Repository } from '../types';
+import { supabase } from '../config/supabase.js';
+import type { Repository } from '../types/index.js';
 
 // ---- Row type (snake_case from DB) ----
 interface RepositoryRow {

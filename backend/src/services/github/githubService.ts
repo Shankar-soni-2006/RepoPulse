@@ -1,4 +1,4 @@
-import { createInstallationOctokit, toGitHubError, type GitHubClient } from './octokit';
+import { createInstallationOctokit, toGitHubError, type GitHubClient } from './octokit.js';
 
 // ---- Types returned by GitHub API (relevant fields only) ----
 

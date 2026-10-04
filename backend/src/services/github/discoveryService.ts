@@ -1,10 +1,10 @@
-import { installationRepository } from '../../repositories/installationRepository';
-import { repositoryRepository } from '../../repositories/repositoryRepository';
-import { accessRepository } from '../../repositories/accessRepository';
-import type { DiscoveryResult } from '../../types';
-import type { GHRepository } from './githubService';
-import { normalizeRepository } from './normalizer';
-import { createUserOctokit, toGitHubError } from './octokit';
+import { installationRepository } from '../../repositories/installationRepository.js';
+import { repositoryRepository } from '../../repositories/repositoryRepository.js';
+import { accessRepository } from '../../repositories/accessRepository.js';
+import type { DiscoveryResult } from '../../types/index.js';
+import type { GHRepository } from './githubService.js';
+import { normalizeRepository } from './normalizer.js';
+import { createUserOctokit, toGitHubError } from './octokit.js';
 
 /**
  * Discovers which installations and repositories the signed-in user can reach

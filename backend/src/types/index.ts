@@ -26,7 +26,7 @@ export type {
   InstallationSummary,
   SessionInfo,
   DiscoveryResult,
-} from '@shared/contracts';
+} from '@shared/contracts.js';
 
 // ============================================================
 // BACKEND-INTERNAL DOMAIN TYPES — not part of the API contract

@@ -4,7 +4,7 @@ import type {
   GHReview,
   GHCommit,
   GHUser,
-} from './githubService';
+} from './githubService.js';
 
 // GitHub API shapes stop here: everything below returns RepoPulse row shapes.
 

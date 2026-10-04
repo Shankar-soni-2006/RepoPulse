@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { env } from '../config/env';
+import { env } from '../config/env.js';
 
 export const SESSION_COOKIE = 'rp_session';
 export const OAUTH_STATE_COOKIE = 'rp_oauth_state';

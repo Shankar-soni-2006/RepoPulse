@@ -1,5 +1,5 @@
 import { App } from '@octokit/app';
-import { env } from '../config/env';
+import { env } from '../config/env.js';
 
 // Normalize the private key — environment variables may have literal \n
 const privateKey = env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n');

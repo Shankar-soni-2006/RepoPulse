@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { repositoryRepository } from '../repositories/repositoryRepository';
-import { getAuth } from '../middleware/auth';
-import { sessionService } from '../services/auth/sessionService';
-import { discoverForUser } from '../services/github/discoveryService';
-import { sendSuccess } from '../utils/response';
-import { NotFoundError } from '../utils/errors';
-import { syncService } from '../services/sync/syncService';
+import { repositoryRepository } from '../repositories/repositoryRepository.js';
+import { getAuth } from '../middleware/auth.js';
+import { sessionService } from '../services/auth/sessionService.js';
+import { discoverForUser } from '../services/github/discoveryService.js';
+import { sendSuccess } from '../utils/response.js';
+import { NotFoundError } from '../utils/errors.js';
+import { syncService } from '../services/sync/syncService.js';
 
 export async function listRepositories(
   req: Request,

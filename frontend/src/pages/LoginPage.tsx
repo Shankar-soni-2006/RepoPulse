@@ -15,11 +15,12 @@ const ERROR_MESSAGES: Record<string, string> = {
 const GENERIC_ERROR = 'Signing in with GitHub failed. Please try again.';
 
 export function LoginPage() {
-  const { data: session, isLoading } = useSession();
+  const { data: session, isPending, error, errorUpdateCount, refetch, isFetching } = useSession();
   const [params] = useSearchParams();
   const errorCode = params.get('error');
 
-  if (isLoading) {
+  // Spinner only for the very first check; later re-checks keep the page in place
+  if (isPending && errorUpdateCount === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingState message="Checking session…" />
@@ -44,6 +45,26 @@ export function LoginPage() {
         </div>
 
         <div className="px-6 py-5 space-y-4">
+          {(error || (isPending && errorUpdateCount > 0)) && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800"
+            >
+              <CircleAlert className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
+              <span className="flex-1">
+                Can’t reach the RepoPulse API. Sign-in won’t work until the backend is running.
+              </span>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="font-medium underline underline-offset-2 disabled:opacity-50"
+              >
+                {isFetching ? 'Checking…' : 'Retry'}
+              </button>
+            </div>
+          )}
+
           {errorCode && (
             <div
               role="alert"

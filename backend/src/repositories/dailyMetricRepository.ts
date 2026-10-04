@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { DailyMetric } from '../types';
+import { supabase } from '../config/supabase.js';
+import type { DailyMetric } from '../types/index.js';
 
 interface DailyMetricRow {
   id: string;

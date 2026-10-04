@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { WebhookEvent, WebhookEventStatus } from '../types';
+import { supabase } from '../config/supabase.js';
+import type { WebhookEvent, WebhookEventStatus } from '../types/index.js';
 
 interface WebhookEventRow {
   id: string;

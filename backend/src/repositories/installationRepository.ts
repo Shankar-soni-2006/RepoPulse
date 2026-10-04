@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { GitHubInstallation } from '../types';
+import { supabase } from '../config/supabase.js';
+import type { GitHubInstallation } from '../types/index.js';
 
 interface InstallationRow {
   id: string;

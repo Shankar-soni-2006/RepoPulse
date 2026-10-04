@@ -1,4 +1,4 @@
-import type { Session, User } from '../src/types';
+import type { Session, User } from '../src/types/index.js';
 
 // Shared fixtures for API tests. Repository modules are mocked per test file
 // with vi.mock(); these helpers only build data and headers.

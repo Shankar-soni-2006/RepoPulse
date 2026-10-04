@@ -1,10 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
-import { sessionService } from '../services/auth/sessionService';
-import { sessionRepository } from '../repositories/sessionRepository';
-import { accessRepository } from '../repositories/accessRepository';
-import type { Session, User } from '../types';
-import { readCookie, SESSION_COOKIE } from '../utils/cookies';
-import { ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/errors';
+import { sessionService } from '../services/auth/sessionService.js';
+import { sessionRepository } from '../repositories/sessionRepository.js';
+import { accessRepository } from '../repositories/accessRepository.js';
+import type { Session, User } from '../types/index.js';
+import { readCookie, SESSION_COOKIE } from '../utils/cookies.js';
+import { ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/errors.js';
 
 export interface AuthContext {
   session: Session;

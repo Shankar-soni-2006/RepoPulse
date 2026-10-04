@@ -2,11 +2,12 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Applies every Supabase migration to an in-process Postgres (PGlite) and checks
 // the integrity rules the backend relies on.
 
-const MIGRATIONS_DIR = path.resolve(__dirname, '../../supabase/migrations');
+const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../supabase/migrations');
 const USER = '11111111-1111-4111-8111-111111111111';
 const INSTALLATION = '22222222-2222-4222-8222-222222222222';
 const REPO = '33333333-3333-4333-8333-333333333333';

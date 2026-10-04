@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { ApiSuccess, ApiError } from '../types';
+import { ApiSuccess, ApiError } from '../types/index.js';
 
 export function sendSuccess<T>(res: Response, data: T, status = 200): void {
   const body: ApiSuccess<T> = { success: true, data };

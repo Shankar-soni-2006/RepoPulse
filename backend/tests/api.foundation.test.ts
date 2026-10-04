@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../src/app';
-import { sessionRepository } from '../src/repositories/sessionRepository';
-import { accessRepository } from '../src/repositories/accessRepository';
-import { authHeaders, testSession, testUser } from './helpers';
+import app from '../src/app.js';
+import { sessionRepository } from '../src/repositories/sessionRepository.js';
+import { accessRepository } from '../src/repositories/accessRepository.js';
+import { authHeaders, testSession, testUser } from './helpers.js';
 
 // Foundation tests: response envelope, routing and input validation.
 // Session and access lookups are mocked; validation rejects before any other I/O.
 
-vi.mock('../src/repositories/sessionRepository');
-vi.mock('../src/repositories/accessRepository');
+vi.mock('../src/repositories/sessionRepository.js');
+vi.mock('../src/repositories/accessRepository.js');
 
 beforeEach(() => {
   vi.mocked(sessionRepository.findValidByTokenHash).mockResolvedValue({

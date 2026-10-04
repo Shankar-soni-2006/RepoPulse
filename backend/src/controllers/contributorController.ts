@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { contributorRepository } from '../repositories/contributorRepository';
-import { sendSuccess } from '../utils/response';
+import { contributorRepository } from '../repositories/contributorRepository.js';
+import { sendSuccess } from '../utils/response.js';
 
 export async function getContributors(
   req: Request,

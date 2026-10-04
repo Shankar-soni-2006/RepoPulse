@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { pullRequestRepository } from '../repositories/pullRequestRepository';
-import { sendSuccess } from '../utils/response';
-import { NotFoundError } from '../utils/errors';
-import { assertRepositoryAccess, getAuth } from '../middleware/auth';
+import { pullRequestRepository } from '../repositories/pullRequestRepository.js';
+import { sendSuccess } from '../utils/response.js';
+import { NotFoundError } from '../utils/errors.js';
+import { assertRepositoryAccess, getAuth } from '../middleware/auth.js';
 
 const querySchema = z.object({
   status: z.enum(['open', 'closed', 'merged']).optional(),

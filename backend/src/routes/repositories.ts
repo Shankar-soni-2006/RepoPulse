@@ -4,10 +4,10 @@ import {
   discoverRepositories,
   getRepository,
   syncRepository,
-} from '../controllers/repositoryController';
-import { requireAuth, requireRepositoryAccess } from '../middleware/auth';
-import { validateParams } from '../middleware/validate';
-import { repositoryIdParams } from '../schemas/common';
+} from '../controllers/repositoryController.js';
+import { requireAuth, requireRepositoryAccess } from '../middleware/auth.js';
+import { validateParams } from '../middleware/validate.js';
+import { repositoryIdParams } from '../schemas/common.js';
 
 const router = Router();
 

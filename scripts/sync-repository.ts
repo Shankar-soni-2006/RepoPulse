@@ -6,7 +6,7 @@
  * Uses backend/.env. The repository must already be known to RepoPulse (discovered
  * after a user signed in). Same code path and locking as POST /api/repositories/:id/sync.
  */
-import { syncService } from '../backend/src/services/sync/syncService';
+import { syncService } from '../backend/src/services/sync/syncService.js';
 
 async function main(): Promise<void> {
   const repositoryId = process.argv[2];

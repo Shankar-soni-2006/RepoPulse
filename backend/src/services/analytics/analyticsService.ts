@@ -1,9 +1,9 @@
-import type { Analytics } from '../../types';
+import type { Analytics } from '../../types/index.js';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
-import { dailyMetricRepository } from '../../repositories/dailyMetricRepository';
-import { pullRequestRepository } from '../../repositories/pullRequestRepository';
-import { commitRepository } from '../../repositories/commitRepository';
-import { contributorRepository } from '../../repositories/contributorRepository';
+import { dailyMetricRepository } from '../../repositories/dailyMetricRepository.js';
+import { pullRequestRepository } from '../../repositories/pullRequestRepository.js';
+import { commitRepository } from '../../repositories/commitRepository.js';
+import { contributorRepository } from '../../repositories/contributorRepository.js';
 
 // Stub — fully implemented in Phase 6 (analytics engine)
 export const analyticsService = {

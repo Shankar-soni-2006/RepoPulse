@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase';
-import type { User } from '../types';
+import { supabase } from '../config/supabase.js';
+import type { User } from '../types/index.js';
 
 interface UserRow {
   id: string;

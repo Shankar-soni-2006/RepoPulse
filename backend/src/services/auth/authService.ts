@@ -1,12 +1,12 @@
-import { env } from '../../config/env';
-import { githubApp } from '../../config/github';
-import { userRepository } from '../../repositories/userRepository';
-import { installationRepository } from '../../repositories/installationRepository';
-import type { SessionInfo, User } from '../../types';
-import { generateToken } from '../../utils/crypto';
-import { discoverForUser } from '../github/discoveryService';
-import { createAppOctokit, createUserOctokit, toGitHubError } from '../github/octokit';
-import { sessionService, type GitHubUserTokens } from './sessionService';
+import { env } from '../../config/env.js';
+import { githubApp } from '../../config/github.js';
+import { userRepository } from '../../repositories/userRepository.js';
+import { installationRepository } from '../../repositories/installationRepository.js';
+import type { SessionInfo, User } from '../../types/index.js';
+import { generateToken } from '../../utils/crypto.js';
+import { discoverForUser } from '../github/discoveryService.js';
+import { createAppOctokit, createUserOctokit, toGitHubError } from '../github/octokit.js';
+import { sessionService, type GitHubUserTokens } from './sessionService.js';
 
 let installUrlCache: Promise<string | null> | null = null;
 

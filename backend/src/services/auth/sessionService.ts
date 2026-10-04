@@ -1,8 +1,8 @@
-import { githubApp } from '../../config/github';
-import { sessionRepository } from '../../repositories/sessionRepository';
-import type { Session, User } from '../../types';
-import { decryptSecret, encryptSecret, generateToken, hashToken } from '../../utils/crypto';
-import { UnauthorizedError } from '../../utils/errors';
+import { githubApp } from '../../config/github.js';
+import { sessionRepository } from '../../repositories/sessionRepository.js';
+import type { Session, User } from '../../types/index.js';
+import { decryptSecret, encryptSecret, generateToken, hashToken } from '../../utils/crypto.js';
+import { UnauthorizedError } from '../../utils/errors.js';
 
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000;

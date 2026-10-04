@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { env } from '../config/env';
+import { env } from '../config/env.js';
 
 const KEY = Buffer.from(env.TOKEN_ENCRYPTION_KEY, 'base64');
 const VERSION = 'v1';

@@ -1,14 +1,14 @@
 import { subDays, subHours } from 'date-fns';
-import { env } from '../../config/env';
-import { repositoryRepository } from '../../repositories/repositoryRepository';
-import { contributorRepository } from '../../repositories/contributorRepository';
-import { pullRequestRepository } from '../../repositories/pullRequestRepository';
-import { reviewRepository } from '../../repositories/reviewRepository';
-import { commitRepository, type CommitInsert } from '../../repositories/commitRepository';
-import type { Repository } from '../../types';
-import { AppError, GitHubError } from '../../utils/errors';
-import { mapWithConcurrency } from '../../utils/batch';
-import { GitHubService, type GHPullRequest, type GHReview, type GHUser } from '../github/githubService';
+import { env } from '../../config/env.js';
+import { repositoryRepository } from '../../repositories/repositoryRepository.js';
+import { contributorRepository } from '../../repositories/contributorRepository.js';
+import { pullRequestRepository } from '../../repositories/pullRequestRepository.js';
+import { reviewRepository } from '../../repositories/reviewRepository.js';
+import { commitRepository, type CommitInsert } from '../../repositories/commitRepository.js';
+import type { Repository } from '../../types/index.js';
+import { AppError, GitHubError } from '../../utils/errors.js';
+import { mapWithConcurrency } from '../../utils/batch.js';
+import { GitHubService, type GHPullRequest, type GHReview, type GHUser } from '../github/githubService.js';
 import {
   normalizeCommit,
   normalizeContributorIdentity,
@@ -17,7 +17,7 @@ import {
   normalizeReview,
   summarizeReviews,
   type NormalizedReview,
-} from '../github/normalizer';
+} from '../github/normalizer.js';
 
 // A 'syncing' claim older than this is treated as abandoned (e.g. server restart)
 const STALE_SYNC_MINUTES = 30;

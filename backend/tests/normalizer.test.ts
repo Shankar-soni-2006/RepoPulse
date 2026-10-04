@@ -4,9 +4,9 @@ import {
   normalizePullRequest,
   normalizeReview,
   summarizeReviews,
-} from '../src/services/github/normalizer';
-import type { GHCommit, GHPullRequest, GHReview } from '../src/services/github/githubService';
-import { mapWithConcurrency } from '../src/utils/batch';
+} from '../src/services/github/normalizer.js';
+import type { GHCommit, GHPullRequest, GHReview } from '../src/services/github/githubService.js';
+import { mapWithConcurrency } from '../src/utils/batch.js';
 
 const AUTHOR = { id: 1, login: 'author' };
 const REVIEWER = { id: 2, login: 'reviewer' };

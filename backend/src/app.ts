@@ -1,16 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-import { env } from './config/env';
-import { errorMiddleware, notFoundMiddleware } from './middleware/error';
-import { authenticate, requireClientHeader } from './middleware/auth';
-import healthRouter from './routes/health';
-import authRouter from './routes/auth';
-import repositoriesRouter from './routes/repositories';
-import pullRequestsRouter from './routes/pullRequests';
-import { pullRequestDetailRouter } from './routes/pullRequests';
-import contributorsRouter from './routes/contributors';
-import analyticsRouter from './routes/analytics';
-import aiRouter from './routes/ai';
+import { env } from './config/env.js';
+import { errorMiddleware, notFoundMiddleware } from './middleware/error.js';
+import { authenticate, requireClientHeader } from './middleware/auth.js';
+import healthRouter from './routes/health.js';
+import authRouter from './routes/auth.js';
+import repositoriesRouter from './routes/repositories.js';
+import pullRequestsRouter from './routes/pullRequests.js';
+import { pullRequestDetailRouter } from './routes/pullRequests.js';
+import contributorsRouter from './routes/contributors.js';
+import analyticsRouter from './routes/analytics.js';
+import aiRouter from './routes/ai.js';
 
 const app = express();
 

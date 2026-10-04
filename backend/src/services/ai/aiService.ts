@@ -1,4 +1,4 @@
-import type { AIInsightRequest, AIInsightResponse } from '../../types';
+import type { AIInsightRequest, AIInsightResponse } from '../../types/index.js';
 
 // Stub — fully implemented in Phase 9 (AI service)
 export const aiService = {

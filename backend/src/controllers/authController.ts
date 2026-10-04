@@ -1,18 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { env } from '../config/env';
-import { authService } from '../services/auth/authService';
-import { sessionService, SESSION_TTL_SECONDS } from '../services/auth/sessionService';
-import { getAuth } from '../middleware/auth';
-import { sendSuccess } from '../utils/response';
-import { AppError } from '../utils/errors';
+import { env } from '../config/env.js';
+import { authService } from '../services/auth/authService.js';
+import { sessionService, SESSION_TTL_SECONDS } from '../services/auth/sessionService.js';
+import { getAuth } from '../middleware/auth.js';
+import { sendSuccess } from '../utils/response.js';
+import { AppError } from '../utils/errors.js';
 import {
   clearCookie,
   OAUTH_STATE_COOKIE,
   readCookie,
   SESSION_COOKIE,
   setCookie,
-} from '../utils/cookies';
+} from '../utils/cookies.js';
 
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 

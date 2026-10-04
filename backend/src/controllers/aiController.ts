@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { aiService } from '../services/ai/aiService';
-import { sendSuccess } from '../utils/response';
-import { assertRepositoryAccess, getAuth } from '../middleware/auth';
+import { aiService } from '../services/ai/aiService.js';
+import { sendSuccess } from '../utils/response.js';
+import { assertRepositoryAccess, getAuth } from '../middleware/auth.js';
 
 const bodySchema = z.object({
   repositoryId: z.string().uuid(),

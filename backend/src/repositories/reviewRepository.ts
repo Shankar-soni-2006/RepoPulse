@@ -1,6 +1,6 @@
-import { supabase } from '../config/supabase';
-import type { Review } from '../types';
-import { chunk } from '../utils/batch';
+import { supabase } from '../config/supabase.js';
+import type { Review } from '../types/index.js';
+import { chunk } from '../utils/batch.js';
 
 const UPSERT_BATCH = 500;
 

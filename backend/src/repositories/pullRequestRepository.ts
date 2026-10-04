@@ -1,6 +1,6 @@
-import { supabase } from '../config/supabase';
-import type { Paginated, PullRequest } from '../types';
-import { chunk } from '../utils/batch';
+import { supabase } from '../config/supabase.js';
+import type { Paginated, PullRequest } from '../types/index.js';
+import { chunk } from '../utils/batch.js';
 
 const UPSERT_BATCH = 200; // PR bodies can be large
 

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../src/app';
-import { githubApp } from '../src/config/github';
-import { sessionRepository } from '../src/repositories/sessionRepository';
-import { accessRepository } from '../src/repositories/accessRepository';
-import { repositoryRepository } from '../src/repositories/repositoryRepository';
-import { pullRequestRepository } from '../src/repositories/pullRequestRepository';
-import { sessionService } from '../src/services/auth/sessionService';
-import { decryptSecret, encryptSecret, hashToken } from '../src/utils/crypto';
+import app from '../src/app.js';
+import { githubApp } from '../src/config/github.js';
+import { sessionRepository } from '../src/repositories/sessionRepository.js';
+import { accessRepository } from '../src/repositories/accessRepository.js';
+import { repositoryRepository } from '../src/repositories/repositoryRepository.js';
+import { pullRequestRepository } from '../src/repositories/pullRequestRepository.js';
+import { sessionService } from '../src/services/auth/sessionService.js';
+import { decryptSecret, encryptSecret, hashToken } from '../src/utils/crypto.js';
 import {
   authHeaders,
   PR_ID,
@@ -15,13 +15,13 @@ import {
   TEST_SESSION_TOKEN,
   testSession,
   testUser,
-} from './helpers';
-import type { PullRequest, Repository } from '../src/types';
+} from './helpers.js';
+import type { PullRequest, Repository } from '../src/types/index.js';
 
-vi.mock('../src/repositories/sessionRepository');
-vi.mock('../src/repositories/accessRepository');
-vi.mock('../src/repositories/repositoryRepository');
-vi.mock('../src/repositories/pullRequestRepository');
+vi.mock('../src/repositories/sessionRepository.js');
+vi.mock('../src/repositories/accessRepository.js');
+vi.mock('../src/repositories/repositoryRepository.js');
+vi.mock('../src/repositories/pullRequestRepository.js');
 
 function signedIn() {
   vi.mocked(sessionRepository.findValidByTokenHash).mockResolvedValue({

@@ -2,8 +2,8 @@ import { Octokit } from '@octokit/rest';
 import { throttling } from '@octokit/plugin-throttling';
 import { retry } from '@octokit/plugin-retry';
 import { createAppAuth } from '@octokit/auth-app';
-import { githubAppCredentials } from '../../config/github';
-import { GitHubError } from '../../utils/errors';
+import { githubAppCredentials } from '../../config/github.js';
+import { GitHubError } from '../../utils/errors.js';
 
 // Octokit with rate-limit awareness: waits out primary/secondary limits a bounded
 // number of times, and retries transient 5xx failures.

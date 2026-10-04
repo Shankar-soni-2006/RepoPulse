@@ -1,6 +1,6 @@
-import { supabase } from '../config/supabase';
-import type { Contributor } from '../types';
-import { chunk } from '../utils/batch';
+import { supabase } from '../config/supabase.js';
+import type { Contributor } from '../types/index.js';
+import { chunk } from '../utils/batch.js';
 
 const UPSERT_BATCH = 500;
 const PAGE_SIZE = 1000; // PostgREST's default max rows per request
