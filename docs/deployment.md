@@ -125,6 +125,14 @@ Use a separate App from development, or edit the existing one:
 | Webhook URL | `https://repopulse-shankar-api.vercel.app/api/webhooks/github` (backend) |
 | Webhook secret | same as `GITHUB_WEBHOOK_SECRET` |
 | Permissions / events | see `architecture/github-app-setup.md` |
+| Visibility | **Public** (*Advanced → Make this GitHub App public*) so other GitHub users can install it |
+
+A **private** App can only be installed on the account that owns it. Anyone else who
+signs in sees *Install the GitHub App to get started*, but the install link returns 404
+for them, so they can never connect a repository. Making the App public lets any user
+or organization install it. Each user still sees only repositories they can access
+(`user_repositories`), but their syncs and AI requests use your Supabase, Upstash and
+AI quotas.
 
 Editing the development App moves its callback and webhook to production, so local
 sign-in and the smee relay stop working until they are changed back. A separate
@@ -136,6 +144,8 @@ production App avoids that; it then needs its own keys in the backend project.
       `cache: ok` if Redis is configured.
 - [ ] Frontend proxy: `https://repopulse-shankar.vercel.app/api/health` → the same JSON.
 - [ ] **Continue with GitHub** signs in and lands on Repositories.
+- [ ] A second GitHub account can sign in, install the App on its own account and see
+      only its own repositories.
 - [ ] **Sync** on a repository finishes with status *Synced*.
 - [ ] Overview, Pull Requests, Contributors and Analytics show that repository's data.
 - [ ] A PR opened on GitHub appears without a sync, and *Settings → Webhook deliveries*
@@ -177,6 +187,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 | `/api/...` on the frontend returns 404 or HTML | Rewrite destination wrong | Fix the backend domain in `frontend/vercel.json` |
 | GitHub: "redirect_uri is not associated with this application" | Callback URL mismatch | App callback = `<frontend>/api/auth/callback`; `BACKEND_URL` = frontend URL |
 | Signed in, but immediately signed out / 401 everywhere | Cookie set for the wrong host | Use the app only via the frontend domain; `BACKEND_URL`/`FRONTEND_URL` = frontend URL |
+| Other users sign in but *Install GitHub App* shows a GitHub 404 | The App is private | App → *Advanced* → **Make public** |
 | Webhook deliveries fail with 401 | Secret mismatch | Same value in GitHub App and `GITHUB_WEBHOOK_SECRET`; Redeploy after changing |
 | Sync stays *Syncing* | Function stopped at its time limit | Wait 10 minutes and sync again; the backfill continues |
 
