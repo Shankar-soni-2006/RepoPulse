@@ -1,6 +1,6 @@
 // Vercel serverless entry: the whole Express API runs as this one function.
-// backend/dist is produced by the build command (tsc) before functions are bundled.
-import app from '../backend/dist/app.js';
+// dist/ is produced by the build command (tsc) before functions are bundled.
+import app from '../dist/app.js';
 
 let helpersWarned = false;
 
@@ -19,7 +19,7 @@ export default function handler(req, res) {
     return;
   }
 
-  // vercel.json rewrites /api/<path> to this function. Vercel passes the original URL;
+  // vercel.json rewrites every path to this function. Vercel passes the original URL;
   // if the rewrite destination (/api?path=<path>) arrives instead, restore the original.
   const url = new URL(req.url ?? '/', 'http://internal');
   if (url.pathname === '/api' && url.searchParams.has('path')) {

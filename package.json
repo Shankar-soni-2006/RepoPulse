@@ -16,7 +16,7 @@
     "test:smoke": "npm --prefix backend run test:smoke --"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20"
   },
   "type": "module"
 }

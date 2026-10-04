@@ -30,7 +30,7 @@ real Postgres via PGlite). The live smoke test (`npm run test:smoke`) passes 16/
 | 19 | Frontend never directly accesses GitHub, Supabase, Gemini/AI or Redis | ✅ Verified | Production bundle scan: no external API hosts; only relative `/api` calls |
 | 20 | Backend handles external-service failures | ✅ Tested | GitHub errors and rate limits, DB failures during sync and webhooks, Redis down, AI down (analytics still return 200) |
 | 21 | Secrets are never exposed | ✅ Verified | Bundle scan found no secret values; `.env` git-ignored and never committed; GitHub tokens AES-GCM encrypted; sessions stored as hashes |
-| 22 | Deployable using environment variables | ⚠️ Prepared | `vercel.json` + `api/index.js` (frontend and API in one Vercel project), `docs/deployment.md`; Vercel build and the bundled function verified locally; not yet deployed |
+| 22 | Deployable using environment variables | ⚠️ Prepared | Two Vercel projects: `frontend/vercel.json` (proxies `/api`) and `backend/vercel.json` + `backend/api/index.js`; `docs/deployment.md`; both Vercel builds and the bundled function verified locally; not yet deployed |
 | 23 | UI looks like a professional engineering analytics platform | ✅ Self-assessed | Compact panels, tables, restrained palette, readable charts (judge for yourself) |
 | 24 | UI does not look AI-generated | ✅ Self-assessed | No gradients, glow or sparkle icons; AI is one page, run on demand |
 
