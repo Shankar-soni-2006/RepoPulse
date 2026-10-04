@@ -183,10 +183,20 @@ describe('sync engine', () => {
 
   it('incremental sync starts an hour before the last successful sync', async () => {
     vi.mocked(repositoryRepository.claimForSync).mockResolvedValue(
-      repoRow({ lastSyncedAt: '2026-10-02T12:00:00.000Z' }),
+      repoRow({ lastSyncedAt: '2026-10-02T12:00:00.000Z', dataSince: '2026-04-06T12:00:00.000Z' }),
     );
     await syncService.runNow(REPO_ID);
     expect(github.listPullRequestsUpdatedSince.mock.calls[0][2].toISOString()).toBe('2026-10-02T11:00:00.000Z');
+  });
+
+  it('re-reads the full window when the start of synced data is unknown', async () => {
+    // e.g. synced before data_since was tracked: an incremental read would misreport coverage
+    vi.mocked(repositoryRepository.claimForSync).mockResolvedValue(
+      repoRow({ lastSyncedAt: '2026-10-02T12:00:00.000Z', dataSince: null }),
+    );
+    await syncService.runNow(REPO_ID);
+    expect(github.listPullRequestsUpdatedSince.mock.calls[0][2].toISOString()).toBe('2026-04-06T12:00:00.000Z');
+    expect(vi.mocked(repositoryRepository.markSyncSucceeded).mock.calls[0][2]).toBe('2026-04-06T12:00:00.000Z');
   });
 
   it('follows renames by reading the repository by GitHub id and using its current name', async () => {

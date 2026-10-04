@@ -78,9 +78,12 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
     const owner = ghRepo.owner.login;
     const name = ghRepo.name;
 
-    const since = repo.lastSyncedAt
-      ? subHours(new Date(repo.lastSyncedAt), INCREMENTAL_OVERLAP_HOURS)
-      : subDays(startedAt, env.SYNC_LOOKBACK_DAYS);
+    // Incremental only when we know where the synced data starts; otherwise (first sync,
+    // or synced before data_since was tracked) read the full lookback window.
+    const since =
+      repo.lastSyncedAt && repo.dataSince
+        ? subHours(new Date(repo.lastSyncedAt), INCREMENTAL_OVERLAP_HOURS)
+        : subDays(startedAt, env.SYNC_LOOKBACK_DAYS);
 
     // 2–4. Pull requests (with size details), their reviews, and commits
     const summaries = await github.listPullRequestsUpdatedSince(owner, name, since);
