@@ -1,31 +1,18 @@
 import { subDays, subHours } from 'date-fns';
 import { env } from '../../config/env.js';
 import { repositoryRepository } from '../../repositories/repositoryRepository.js';
-import { contributorRepository } from '../../repositories/contributorRepository.js';
-import { pullRequestRepository } from '../../repositories/pullRequestRepository.js';
-import { reviewRepository } from '../../repositories/reviewRepository.js';
-import { commitRepository, type CommitInsert } from '../../repositories/commitRepository.js';
+import { commitRepository } from '../../repositories/commitRepository.js';
 import type { Repository } from '../../types/index.js';
-import { AppError, GitHubError } from '../../utils/errors.js';
-import { mapWithConcurrency } from '../../utils/batch.js';
+import { AppError } from '../../utils/errors.js';
 import { analyticsService } from '../analytics/analyticsService.js';
-import { GitHubService, type GHPullRequest, type GHReview, type GHUser } from '../github/githubService.js';
-import {
-  normalizeCommit,
-  normalizeContributorIdentity,
-  normalizePullRequest,
-  normalizeRepository,
-  normalizeReview,
-  summarizeReviews,
-  type NormalizedReview,
-} from '../github/normalizer.js';
+import { GitHubService } from '../github/githubService.js';
+import { normalizeRepository } from '../github/normalizer.js';
+import { backfillCommitStats, fetchPullRequests, storeActivity } from './ingest.js';
 
 // A 'syncing' claim older than this is treated as abandoned (e.g. server restart)
 const STALE_SYNC_MINUTES = 30;
 // Re-read a little before the last sync to absorb clock skew and in-flight updates
 const INCREMENTAL_OVERLAP_HOURS = 1;
-// Parallel GitHub requests per sync — low to stay clear of secondary rate limits
-const GITHUB_CONCURRENCY = 4;
 // Commit stats cost one request each: cap per sync and keep a rate-limit reserve
 const MAX_COMMIT_STATS_PER_SYNC = 1000;
 const RATE_LIMIT_RESERVE = 300;
@@ -41,11 +28,6 @@ export interface SyncSummary {
   commitStatsPending: number;
   /** Daily metric rows recomputed after the sync */
   dailyMetricsRefreshed: number;
-}
-
-interface PullRequestWithReviews {
-  pr: GHPullRequest;
-  reviews: GHReview[];
 }
 
 function failureMessage(err: unknown): string {
@@ -75,8 +57,7 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
     // 1. Repository metadata (by id, so renames/transfers are picked up)
     const ghRepo = await github.getRepositoryById(repo.githubId);
     await repositoryRepository.update(repo.id, normalizeRepository(ghRepo));
-    const owner = ghRepo.owner.login;
-    const name = ghRepo.name;
+    const ref = { owner: ghRepo.owner.login, name: ghRepo.name };
 
     // Incremental only when we know where the synced data starts; otherwise (first sync,
     // or synced before data_since was tracked) read the full lookback window.
@@ -86,65 +67,19 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
         : subDays(startedAt, env.SYNC_LOOKBACK_DAYS);
 
     // 2–4. Pull requests (with size details), their reviews, and commits
-    const summaries = await github.listPullRequestsUpdatedSince(owner, name, since);
-    const prs: PullRequestWithReviews[] = await mapWithConcurrency(
-      summaries,
-      GITHUB_CONCURRENCY,
-      async (s) => ({
-        pr: await github.getPullRequest(owner, name, s.number),
-        reviews: await github.listReviews(owner, name, s.number),
-      }),
-    );
-    const commits = await github.listCommits(owner, name, since);
+    const summaries = await github.listPullRequestsUpdatedSince(ref.owner, ref.name, since);
+    const prs = await fetchPullRequests(github, ref, summaries.map((s) => s.number));
+    const commits = await github.listCommits(ref.owner, ref.name, since);
 
-    // 5. Contributor identities for everyone who appears in this batch
-    const users = new Map<number, GHUser>();
-    for (const { pr, reviews } of prs) {
-      if (pr.user) users.set(pr.user.id, pr.user);
-      for (const r of reviews) if (r.user) users.set(r.user.id, r.user);
-    }
-    for (const c of commits) if (c.author) users.set(c.author.id, c.author);
-
-    await contributorRepository.upsertIdentities(
-      [...users.values()].map((u) => normalizeContributorIdentity(u, repo.id)),
-    );
-    const contributorIds = await contributorRepository.findIdMap(repo.id);
-
-    // 6–7. Normalize and upsert
-    const prIds = await pullRequestRepository.upsertMany(
-      prs.map(({ pr, reviews }) =>
-        normalizePullRequest(pr, repo.id, contributorIds, summarizeReviews(reviews, pr.user?.id ?? null)),
-      ),
-    );
-
-    const reviewRows = prs.flatMap(({ pr, reviews }) => {
-      const pullRequestId = prIds.get(pr.id);
-      if (!pullRequestId) throw new Error(`Pull request ${pr.id} was not stored`);
-      return reviews
-        .map((r) => normalizeReview(r, pullRequestId, repo.id, contributorIds))
-        .filter((r): r is NormalizedReview => r !== null);
-    });
-    await reviewRepository.upsertMany(reviewRows);
-
-    await commitRepository.insertNew(commits.map((c) => normalizeCommit(c, repo.id, contributorIds)));
+    // 5–7. Contributors, PRs, reviews and new commits
+    const { reviews } = await storeActivity(repo.id, prs, commits);
 
     // Commit line stats: one request per commit, newest first, within the rate budget
     const budget = Math.min(
       MAX_COMMIT_STATS_PER_SYNC,
       (await github.getRemainingRequests()) - RATE_LIMIT_RESERVE,
     );
-    const missing = await commitRepository.findMissingStats(repo.id, budget);
-    const withStats = await mapWithConcurrency(missing, GITHUB_CONCURRENCY, async (row) => {
-      try {
-        return { ...row, ...statsOf(await github.getCommit(owner, name, row.sha)) };
-      } catch (err) {
-        // A commit rewritten out of history can vanish; leave its stats unknown
-        if (err instanceof GitHubError && err.code === 'GITHUB_NOT_FOUND') return null;
-        throw err;
-      }
-    });
-    const fetched = withStats.filter((r): r is CommitInsert => r !== null && r.additions !== null);
-    await commitRepository.saveStats(fetched);
+    const commitStatsFetched = await backfillCommitStats(github, repo.id, ref, budget);
 
     // Earliest point covered by synced data (only ever moves back in time)
     const dataSince =
@@ -157,9 +92,9 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
       repositoryId: repo.id,
       since: since.toISOString(),
       pullRequests: prs.length,
-      reviews: reviewRows.length,
+      reviews,
       commits: commits.length,
-      commitStatsFetched: fetched.length,
+      commitStatsFetched,
       commitStatsPending: await commitRepository.countMissingStats(repo.id),
       dailyMetricsRefreshed,
     };
@@ -175,15 +110,6 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
       .catch((markErr: Error) => console.error('[sync] could not record failure:', markErr.message));
     throw err;
   }
-}
-
-function statsOf(commit: { stats?: { additions?: number; deletions?: number }; parents: unknown[] }) {
-  const known = commit.stats?.additions !== undefined && commit.stats?.deletions !== undefined;
-  return {
-    additions: known ? (commit.stats?.additions as number) : null,
-    deletions: known ? (commit.stats?.deletions as number) : null,
-    is_merge: commit.parents.length > 1,
-  };
 }
 
 async function claim(repositoryId: string): Promise<Repository> {

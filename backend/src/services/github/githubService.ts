@@ -155,6 +155,24 @@ export class GitHubService {
     }
   }
 
+  /**
+   * Commits reachable from `head` but not `base` (a push's new commits), oldest first.
+   * GitHub returns at most 250; a larger push is completed by the next full sync.
+   */
+  async compareCommits(owner: string, repo: string, base: string, head: string): Promise<GHCommit[]> {
+    try {
+      const { data } = await this.octokit.repos.compareCommitsWithBasehead({
+        owner,
+        repo,
+        basehead: `${base}...${head}`,
+        per_page: 250,
+      });
+      return data.commits as GHCommit[];
+    } catch (err) {
+      throw toGitHubError(err, `Failed to compare ${base.slice(0, 7)}...${head.slice(0, 7)}`);
+    }
+  }
+
   /** Single commit, including line stats and parents. */
   async getCommit(owner: string, repo: string, sha: string): Promise<GHCommit> {
     try {

@@ -11,14 +11,16 @@ import { pullRequestDetailRouter } from './routes/pullRequests.js';
 import contributorsRouter from './routes/contributors.js';
 import analyticsRouter from './routes/analytics.js';
 import aiRouter from './routes/ai.js';
+import webhooksRouter from './routes/webhooks.js';
 
 const app = express();
 
 // ---- Core middleware ----
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 
-// Raw body for webhook signature validation — must come before json()
-app.use('/api/webhooks', express.raw({ type: 'application/json' }));
+// Raw bytes for webhook signature verification — must come before json(). Any content
+// type is accepted here so the handler can reject non-JSON deliveries with a clear 415.
+app.use('/api/webhooks', express.raw({ type: () => true, limit: '5mb' }));
 
 app.use(express.json());
 
@@ -37,6 +39,7 @@ app.use('/api/repositories/:repositoryId/contributors', contributorsRouter);
 app.use('/api/repositories/:repositoryId', analyticsRouter);
 app.use('/api/pull-requests', pullRequestDetailRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/webhooks', webhooksRouter);
 
 // ---- Unknown routes / error handler (must be last) ----
 app.use(notFoundMiddleware);

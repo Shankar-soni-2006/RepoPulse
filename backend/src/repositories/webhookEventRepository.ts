@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabase.js';
 import type { WebhookEvent, WebhookEventStatus } from '../types/index.js';
 
+const UNIQUE_VIOLATION = '23505';
+
 interface WebhookEventRow {
   id: string;
   repository_id: string | null;
@@ -35,14 +37,26 @@ export type WebhookEventInsert = Pick<
 >;
 
 export const webhookEventRepository = {
-  async create(event: WebhookEventInsert): Promise<WebhookEvent> {
+  /**
+   * Records a delivery. Returns null when this delivery id was already recorded
+   * (GitHub redelivery): the unique constraint makes the check race-free.
+   */
+  async create(event: WebhookEventInsert): Promise<WebhookEvent | null> {
     const { data, error } = await supabase
       .from('webhook_events')
       .insert(event)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      if (error.code === UNIQUE_VIOLATION) return null;
+      throw error;
+    }
     return toWebhookEvent(data as WebhookEventRow);
+  },
+
+  async markProcessing(id: string): Promise<void> {
+    const { error } = await supabase.from('webhook_events').update({ status: 'processing' }).eq('id', id);
+    if (error) throw error;
   },
 
   async markProcessed(id: string): Promise<void> {
@@ -63,14 +77,5 @@ export const webhookEventRepository = {
       .update({ status, processing_error: processingError, processed_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
-  },
-
-  async existsByDeliveryId(deliveryId: string): Promise<boolean> {
-    const { count, error } = await supabase
-      .from('webhook_events')
-      .select('id', { count: 'exact', head: true })
-      .eq('github_delivery_id', deliveryId);
-    if (error) throw error;
-    return (count ?? 0) > 0;
   },
 };

@@ -16,8 +16,8 @@ GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App*
 | Expire user authorization tokens | **On** (RepoPulse refreshes them automatically) |
 | Request user authorization (OAuth) during installation | Off |
 | Setup URL (optional) | `${FRONTEND_URL}/repositories`, with "Redirect on update" checked |
-| Webhook → Active | On once the webhook endpoint exists (Phase 7) |
-| Webhook URL | `${BACKEND_URL}/api/webhooks/github` (must be publicly reachable; use a tunnel such as smee.io for local dev) |
+| Webhook → Active | On |
+| Webhook URL | Production: `${BACKEND_URL}/api/webhooks/github`. Local development: the smee.io URL in `WEBHOOK_PROXY_URL` (see `webhooks.md`) |
 | Webhook secret | a long random string → `GITHUB_WEBHOOK_SECRET` |
 
 ### Permissions (all **read-only**)

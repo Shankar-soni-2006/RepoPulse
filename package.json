@@ -10,7 +10,8 @@
     "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
     "test": "npm --prefix backend test",
-    "sync:repo": "npm --prefix backend run sync:repo --"
+    "sync:repo": "npm --prefix backend run sync:repo --",
+    "webhooks:relay": "npm --prefix backend run webhooks:relay"
   },
   "engines": {
     "node": ">=20"
