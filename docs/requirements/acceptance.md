@@ -3,8 +3,9 @@
 Tracks the master specification's final acceptance criteria.
 **Verified live** means checked against the real services (GitHub, Supabase, Upstash, Groq)
 with the development repository `Shankar-soni-2006/GuessColor`. **Tested** means covered by
-the automated suite (`npm test`: 200 tests, including SQL against a real Postgres via
-PGlite). Last updated 2026-10-04.
+the automated suites (`npm test`: 211 backend + 36 frontend tests, including SQL against a
+real Postgres via PGlite). The live smoke test (`npm run test:smoke`) passes 16/16. See
+`test-report.md`. Last updated 2026-10-04.
 
 | # | Criterion | Status | How |
 |---|---|---|---|
@@ -21,7 +22,7 @@ PGlite). Last updated 2026-10-04.
 | 11 | Pull request table displays real data | ✅ Verified live | Table, sorting, filters and detail drawer |
 | 12 | Contributor page displays real data | ✅ Verified live | Real activity; recent windows are correctly empty for GuessColor |
 | 13 | Analytics page displays real trends | ⚠️ Partly | Daily series from the API are verified (31/91 rows). Chart drawing was checked with synthetic data in the browser only, because GuessColor has no recent activity |
-| 14 | GitHub webhook updates repository data | ⚠️ Partly | Live: real deliveries pass signature checks through the relay and are recorded. PR/push processing is tested, but no live PR/push has been delivered yet |
+| 14 | GitHub webhook updates repository data | ✅ Verified live (signed delivery) | Smoke test: a signed `pull_request` delivery is processed, the PR is re-fetched from GitHub, and the cache is invalidated; duplicates and forged signatures are rejected. Real GitHub deliveries pass signature checks. A GitHub-originated PR event is still to be seen |
 | 15 | Redis caches analytics | ✅ Verified live | `HIT → sync → MISS → HIT`; falls back to the database when Redis is down (tested) |
 | 16 | AI explains supplied metrics | ✅ Verified live | Groq answers for every mode; Fact / Evidence / Explanation / Investigation |
 | 17 | AI does not invent data | ✅ Verified live + tested | Strict schema, Zod, numeric grounding; 0 insights rejected across live runs; invented numbers rejected in tests |
@@ -37,7 +38,7 @@ PGlite). Last updated 2026-10-04.
 
 - **#6:** a review on any GuessColor PR from a second GitHub account, then Sync.
 - **#13:** any recent activity (PRs, merges) in a synced repository.
-- **#14:** with `npm run webhooks:relay` running, open or merge a PR, then check
+- **#14 (optional):** with `npm run webhooks:relay` running, open a real PR and check
   *Settings → Webhook deliveries* for *Processed*.
 - **#22:** deploy following `docs/deployment.md`.
 

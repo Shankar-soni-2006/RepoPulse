@@ -54,7 +54,8 @@ See `docs/architecture/sync.md`.
 ### 5. Verify
 ```bash
 npm run typecheck
-npm test
+npm test               # backend + frontend suites
+npm run test:smoke     # live end-to-end check (backend running, real services)
 npm run build
 ```
 
@@ -66,6 +67,7 @@ Vercel (frontend), Render (backend), Supabase, Upstash: see `docs/deployment.md`
 - `docs/database/schema.md`: tables and integrity rules
 - `docs/deployment.md`: production setup and verification
 - `docs/requirements/acceptance.md`: acceptance criteria and how each is met
+- `docs/requirements/test-report.md`: test layers and scenario coverage
 
 ## API Contract
 All responses use `{ "success": true, "data": … }` or

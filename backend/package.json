@@ -10,7 +10,8 @@
     "test": "vitest run",
     "sync:repo": "tsx ../scripts/sync-repository.ts",
     "webhooks:relay": "tsx scripts/webhook-relay.ts",
-    "metrics:recalculate": "tsx ../scripts/calculate-metrics.ts"
+    "metrics:recalculate": "tsx ../scripts/calculate-metrics.ts",
+    "test:smoke": "tsx ../scripts/smoke-test.ts"
   },
   "dependencies": {
     "@octokit/app": "^15.1.0",
