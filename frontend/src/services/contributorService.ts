@@ -1,7 +1,8 @@
 import { api } from './api';
-import type { Contributor } from '../types';
+import type { ContributorActivityReport, TimePeriod } from '../types';
 
 export const contributorService = {
-  list: (repositoryId: string) =>
-    api.get<Contributor[]>(`/api/repositories/${repositoryId}/contributors`),
+  /** Activity per contributor in the period, alphabetical (never ranked) */
+  list: (repositoryId: string, days: TimePeriod) =>
+    api.get<ContributorActivityReport>(`/api/repositories/${repositoryId}/contributors?days=${days}`),
 };

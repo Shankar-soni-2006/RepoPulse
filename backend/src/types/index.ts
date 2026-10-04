@@ -14,10 +14,16 @@ export type {
   PullRequest,
   ReviewState,
   Review,
-  Contributor,
+  ContributorActivity,
+  ContributorActivityReport,
   TimePeriod,
-  AnalyticsMetrics,
-  AnalyticsTrend,
+  AnalyticsPeriod,
+  PeriodMetrics,
+  ComparableMetric,
+  MetricChanges,
+  DataQuality,
+  MetricsSummary,
+  DailyTrend,
   Analytics,
   AIInsightRequest,
   AIInsight,
@@ -46,22 +52,6 @@ export interface Commit {
   isMerge: boolean;
   committedAt: string;
   createdAt: string;
-}
-
-export interface DailyMetric {
-  id: string;
-  repositoryId: string;
-  date: string;
-  prCount: number;
-  mergedPrCount: number;
-  commitCount: number;
-  additions: number;
-  deletions: number;
-  avgCycleTime: number | null;
-  avgFirstReviewTime: number | null;
-  activeContributors: number;
-  reviewCount: number;
-  avgPrSize: number | null;
 }
 
 export type WebhookEventStatus = 'received' | 'processing' | 'processed' | 'ignored' | 'failed';

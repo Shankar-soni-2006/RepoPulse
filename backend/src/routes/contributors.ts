@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getContributors } from '../controllers/contributorController.js';
+import { getContributors } from '../controllers/analyticsController.js';
 import { requireAuth, requireRepositoryAccess } from '../middleware/auth.js';
 import { validateParams } from '../middleware/validate.js';
 import { repositoryIdParams } from '../schemas/common.js';

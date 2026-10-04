@@ -10,6 +10,7 @@ import { reviewRepository } from '../src/repositories/reviewRepository.js';
 import { commitRepository, type CommitInsert } from '../src/repositories/commitRepository.js';
 import { sessionRepository } from '../src/repositories/sessionRepository.js';
 import { accessRepository } from '../src/repositories/accessRepository.js';
+import { analyticsRepository } from '../src/repositories/analyticsRepository.js';
 import { syncService } from '../src/services/sync/syncService.js';
 import { GitHubError } from '../src/utils/errors.js';
 import type { Repository } from '../src/types/index.js';
@@ -23,6 +24,7 @@ vi.mock('../src/repositories/reviewRepository.js');
 vi.mock('../src/repositories/commitRepository.js');
 vi.mock('../src/repositories/sessionRepository.js');
 vi.mock('../src/repositories/accessRepository.js');
+vi.mock('../src/repositories/analyticsRepository.js');
 
 const NOW = new Date('2026-10-03T12:00:00Z');
 
@@ -98,6 +100,7 @@ function repoRow(overrides: Partial<Repository> = {}): Repository {
     syncStatus: 'syncing',
     syncError: null,
     lastSyncedAt: null,
+    dataSince: null,
     createdAt: NOW.toISOString(),
     updatedAt: NOW.toISOString(),
     ...overrides,
@@ -162,6 +165,7 @@ beforeEach(() => {
   vi.mocked(commitRepository.findMissingStats).mockResolvedValue([missingStatsRow]);
   vi.mocked(commitRepository.saveStats).mockResolvedValue();
   vi.mocked(commitRepository.countMissingStats).mockResolvedValue(0);
+  vi.mocked(analyticsRepository.refreshDailyMetrics).mockResolvedValue(181);
 });
 
 afterEach(() => {
@@ -243,11 +247,37 @@ describe('sync engine', () => {
     expect(summary).toMatchObject({ commitStatsFetched: 0, commitStatsPending: 1 });
   });
 
-  it('marks success with the sync start time', async () => {
+  it('marks success with the sync start time and the start of imported data', async () => {
     const summary = await syncService.runNow(REPO_ID);
-    expect(repositoryRepository.markSyncSucceeded).toHaveBeenCalledWith(REPO_ID, NOW.toISOString());
+    expect(repositoryRepository.markSyncSucceeded).toHaveBeenCalledWith(
+      REPO_ID,
+      NOW.toISOString(),
+      '2026-04-06T12:00:00.000Z', // first sync: start of the 180-day window
+    );
     expect(repositoryRepository.markSyncFailed).not.toHaveBeenCalled();
     expect(summary).toMatchObject({ pullRequests: 1, reviews: 2, commits: 1, commitStatsFetched: 1 });
+  });
+
+  it('recomputes daily metrics from the start of imported data through today', async () => {
+    const summary = await syncService.runNow(REPO_ID);
+    expect(analyticsRepository.refreshDailyMetrics).toHaveBeenCalledWith(REPO_ID, '2026-04-06', '2026-10-03');
+    expect(summary.dailyMetricsRefreshed).toBe(181);
+  });
+
+  it('keeps the earliest data_since across incremental syncs', async () => {
+    vi.mocked(repositoryRepository.claimForSync).mockResolvedValue(
+      repoRow({ lastSyncedAt: '2026-10-02T12:00:00.000Z', dataSince: '2026-04-01T00:00:00.000Z' }),
+    );
+    await syncService.runNow(REPO_ID);
+    expect(vi.mocked(repositoryRepository.markSyncSucceeded).mock.calls[0][2]).toBe('2026-04-01T00:00:00.000Z');
+    expect(analyticsRepository.refreshDailyMetrics).toHaveBeenCalledWith(REPO_ID, '2026-04-01', '2026-10-03');
+  });
+
+  it('fails the sync if daily metrics cannot be recomputed', async () => {
+    vi.mocked(analyticsRepository.refreshDailyMetrics).mockRejectedValue(new Error('db down'));
+    await expect(syncService.runNow(REPO_ID)).rejects.toThrow('db down');
+    expect(repositoryRepository.markSyncSucceeded).not.toHaveBeenCalled();
+    expect(repositoryRepository.markSyncFailed).toHaveBeenCalled();
   });
 
   it('records GitHub failures with their user-facing message', async () => {

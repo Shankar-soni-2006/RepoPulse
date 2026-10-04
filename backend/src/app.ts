@@ -34,7 +34,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/repositories', repositoriesRouter);
 app.use('/api/repositories/:repositoryId/pull-requests', pullRequestsRouter);
 app.use('/api/repositories/:repositoryId/contributors', contributorsRouter);
-app.use('/api/repositories/:repositoryId/analytics', analyticsRouter);
+app.use('/api/repositories/:repositoryId', analyticsRouter);
 app.use('/api/pull-requests', pullRequestDetailRouter);
 app.use('/api/ai', aiRouter);
 

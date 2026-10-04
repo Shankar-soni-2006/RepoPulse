@@ -8,6 +8,7 @@ import { commitRepository, type CommitInsert } from '../../repositories/commitRe
 import type { Repository } from '../../types/index.js';
 import { AppError, GitHubError } from '../../utils/errors.js';
 import { mapWithConcurrency } from '../../utils/batch.js';
+import { analyticsService } from '../analytics/analyticsService.js';
 import { GitHubService, type GHPullRequest, type GHReview, type GHUser } from '../github/githubService.js';
 import {
   normalizeCommit,
@@ -38,6 +39,8 @@ export interface SyncSummary {
   commitStatsFetched: number;
   /** Commits whose line stats are still unknown; later syncs continue the backfill */
   commitStatsPending: number;
+  /** Daily metric rows recomputed after the sync */
+  dailyMetricsRefreshed: number;
 }
 
 interface PullRequestWithReviews {
@@ -140,6 +143,13 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
     const fetched = withStats.filter((r): r is CommitInsert => r !== null && r.additions !== null);
     await commitRepository.saveStats(fetched);
 
+    // Earliest point covered by synced data (only ever moves back in time)
+    const dataSince =
+      repo.dataSince && Date.parse(repo.dataSince) < since.getTime() ? repo.dataSince : since.toISOString();
+
+    // 8–9. Recompute daily metrics over everything synced so far
+    const dailyMetricsRefreshed = await analyticsService.refreshDailyMetrics(repo.id, dataSince, startedAt);
+
     const summary: SyncSummary = {
       repositoryId: repo.id,
       since: since.toISOString(),
@@ -148,10 +158,11 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
       commits: commits.length,
       commitStatsFetched: fetched.length,
       commitStatsPending: await commitRepository.countMissingStats(repo.id),
+      dailyMetricsRefreshed,
     };
 
     // The next incremental sync starts from when this one started
-    await repositoryRepository.markSyncSucceeded(repo.id, startedAt.toISOString());
+    await repositoryRepository.markSyncSucceeded(repo.id, startedAt.toISOString(), dataSince);
     console.log(`[sync] ${ghRepo.full_name} done`, summary);
     return summary;
   } catch (err) {

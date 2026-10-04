@@ -15,8 +15,10 @@ export function formatDateTime(dateStr: string | null): string {
   return format(parseISO(dateStr), 'MMM d, yyyy HH:mm');
 }
 
+/** Backend durations are hours; show the unit that keeps the number readable. */
 export function formatHours(hours: number | null): string {
   if (hours === null) return '—';
+  if (hours < 1 / 60) return `${Math.round(hours * 3600)}s`;
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   if (hours < 24) return `${hours.toFixed(1)}h`;
   const days = hours / 24;

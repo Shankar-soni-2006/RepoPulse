@@ -23,13 +23,14 @@ interface RepositoryRow {
   sync_error: string | null;
   sync_started_at: string | null;
   last_synced_at: string | null;
+  data_since: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export type RepositoryMetadata = Omit<
   RepositoryRow,
-  'id' | 'created_at' | 'updated_at' | 'sync_status' | 'sync_error' | 'sync_started_at' | 'last_synced_at'
+  'id' | 'created_at' | 'updated_at' | 'sync_status' | 'sync_error' | 'sync_started_at' | 'last_synced_at' | 'data_since'
 >;
 
 function toRepository(row: RepositoryRow): Repository {
@@ -52,6 +53,7 @@ function toRepository(row: RepositoryRow): Repository {
     syncStatus: row.sync_status as Repository['syncStatus'],
     syncError: row.sync_error,
     lastSyncedAt: row.last_synced_at,
+    dataSince: row.data_since,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -143,8 +145,13 @@ export const repositoryRepository = {
     return row?.github_installations?.installation_id ?? null;
   },
 
-  async markSyncSucceeded(id: string, syncedAt: string): Promise<void> {
-    await this.update(id, { sync_status: 'synced', last_synced_at: syncedAt, sync_error: null });
+  async markSyncSucceeded(id: string, syncedAt: string, dataSince: string): Promise<void> {
+    await this.update(id, {
+      sync_status: 'synced',
+      last_synced_at: syncedAt,
+      data_since: dataSince,
+      sync_error: null,
+    });
   },
 
   async markSyncFailed(id: string, message: string): Promise<void> {

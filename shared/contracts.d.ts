@@ -53,6 +53,8 @@ export interface Repository {
   /** Last sync failure message; null when the last sync succeeded */
   syncError: string | null;
   lastSyncedAt: string | null;
+  /** Earliest point covered by synced data */
+  dataSince: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -101,55 +103,128 @@ export interface Review {
   createdAt: string;
 }
 
-export interface Contributor {
-  id: string;
+/**
+ * A contributor's activity in a period. Descriptive only: RepoPulse measures
+ * repository activity and never ranks people. Lists are alphabetical.
+ */
+export interface ContributorActivity {
+  contributorId: string;
   githubId: number;
-  repositoryId: string;
   login: string;
   avatarUrl: string | null;
-  name: string | null;
-  commitCount: number;
-  pullRequestCount: number;
-  reviewCount: number;
+  commits: number;
+  prsOpened: number;
+  prsMerged: number;
+  reviews: number;
+  /** Lines in non-merge commits with known stats */
   additions: number;
   deletions: number;
-  firstContributionAt: string | null;
-  lastContributionAt: string | null;
+  lastActiveAt: string | null;
+  /** Commits + PRs opened + reviews per 7-day bucket, oldest first */
+  weeklyActivity: number[];
+}
+
+export interface ContributorActivityReport {
+  period: AnalyticsPeriod;
+  contributors: ContributorActivity[];
 }
 
 // ---- Analytics ----
+// Authoritative values computed by the backend; clients display them as-is.
+// Durations are hours; days are UTC.
 
 export type TimePeriod = 7 | 30 | 90;
 
-export interface AnalyticsMetrics {
-  /** hours */
-  cycleTime: number | null;
-  /** hours */
-  firstReviewTime: number | null;
-  /** hours */
-  reviewDelay: number | null;
+export interface AnalyticsPeriod {
+  /** inclusive, ISO timestamp */
+  from: string;
+  /** exclusive, ISO timestamp */
+  to: string;
+  days: TimePeriod;
+}
+
+export interface PeriodMetrics {
+  /** PRs merged in the period */
   prThroughput: number;
+  /** PRs opened in the period */
+  prsOpened: number;
+  /** Median hours from PR creation to merge, PRs merged in the period */
+  cycleTime: number | null;
+  /** Median hours from PR creation to first review, PRs first reviewed in the period */
+  firstReviewTime: number | null;
+  /** Mean hours from PR creation to first review (same PRs); sensitive to long waits */
+  reviewDelay: number | null;
+  /** Median lines changed (additions + deletions), PRs merged in the period */
+  prSize: number | null;
+  /** Lines added + deleted in non-merge commits with known stats */
   codeChurn: number;
-  avgPrSize: number;
+  additions: number;
+  deletions: number;
   commitCount: number;
+  /** Submitted reviews, excluding authors reviewing their own PRs */
+  reviewCount: number;
+  activeContributors: number;
+  /** PRs open at period end with no review yet */
+  openPrsWithoutReview: number;
+  /** Hours the oldest of those has waited at period end */
+  oldestUnreviewedWait: number | null;
+  /** Non-merge commits whose line stats are not yet known */
+  commitsMissingStats: number;
+}
+
+export type ComparableMetric =
+  | 'prThroughput'
+  | 'prsOpened'
+  | 'cycleTime'
+  | 'firstReviewTime'
+  | 'reviewDelay'
+  | 'prSize'
+  | 'codeChurn'
+  | 'commitCount'
+  | 'reviewCount'
+  | 'activeContributors';
+
+/** Fractional change vs the previous period (0.27 = +27%); null when not computable */
+export type MetricChanges = Record<ComparableMetric, number | null>;
+
+export interface DataQuality {
+  /** Earliest point covered by synced data; null if never synced */
+  dataSince: string | null;
+  lastSyncedAt: string | null;
+  /** Share of non-merge commits in the period with known line stats; null if none */
+  commitStatsCoverage: number | null;
+  /** Human-readable caveats for this result */
+  limitations: string[];
+}
+
+export interface MetricsSummary {
+  repositoryId: string;
+  period: AnalyticsPeriod;
+  previousPeriod: { from: string; to: string };
+  metrics: PeriodMetrics;
+  previousMetrics: PeriodMetrics;
+  changes: MetricChanges;
+  dataQuality: DataQuality;
+  generatedAt: string;
+}
+
+export interface DailyTrend {
+  /** UTC date, YYYY-MM-DD */
+  date: string;
+  prsOpened: number;
+  prThroughput: number;
+  cycleTime: number | null;
+  firstReviewTime: number | null;
+  reviewDelay: number | null;
+  prSize: number | null;
+  codeChurn: number;
+  commitCount: number;
+  reviewCount: number;
   activeContributors: number;
 }
 
-export interface AnalyticsTrend {
-  date: string;
-  cycleTime: number | null;
-  firstReviewTime: number | null;
-  prCount: number;
-  mergedPrCount: number;
-  codeChurn: number;
-  commitCount: number;
-}
-
-export interface Analytics {
-  repositoryId: string;
-  period: { from: string; to: string; days: number };
-  metrics: AnalyticsMetrics;
-  trends: AnalyticsTrend[];
+export interface Analytics extends MetricsSummary {
+  trends: DailyTrend[];
 }
 
 // ---- AI ----
