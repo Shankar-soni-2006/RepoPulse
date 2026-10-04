@@ -7,6 +7,9 @@ import { accessRepository } from '../src/repositories/accessRepository.js';
 import { repositoryRepository } from '../src/repositories/repositoryRepository.js';
 import { pullRequestRepository } from '../src/repositories/pullRequestRepository.js';
 import { sessionService } from '../src/services/auth/sessionService.js';
+import { authService } from '../src/services/auth/authService.js';
+import { supabaseOAuth } from '../src/services/auth/supabaseOAuth.js';
+import { AppError } from '../src/utils/errors.js';
 import { decryptSecret, encryptSecret, hashToken } from '../src/utils/crypto.js';
 import {
   authHeaders,
@@ -154,69 +157,70 @@ describe('repository authorization', () => {
   });
 });
 
-describe('OAuth flow', () => {
-  it('redirects to GitHub with a state that matches the state cookie', async () => {
+describe('OAuth flow (GitHub via Supabase Auth)', () => {
+  const callback = (query: string, cookie = 'rp_oauth_flow=sealed') =>
+    request(app).get(`/api/auth/callback?${query}`).set('Cookie', cookie);
+
+  it('starts sign-in at Supabase and keeps the PKCE state in an httpOnly cookie', async () => {
+    vi.spyOn(supabaseOAuth, 'start').mockResolvedValue({ url: 'https://project.supabase.co/auth/v1/authorize?provider=github', flow: 'sealed' });
     const res = await request(app).get('/api/auth/github');
     expect(res.status).toBe(302);
-    const location = new URL(res.headers.location);
-    expect(location.origin).toBe('https://github.com');
-    expect(location.searchParams.get('redirect_uri')).toBe('http://localhost:3001/api/auth/callback');
-
-    const stateCookie = ([] as string[])
-      .concat(res.headers['set-cookie'])
-      .find((c) => c.startsWith('rp_oauth_state='));
-    expect(stateCookie).toContain('HttpOnly');
-    expect(stateCookie).toContain('SameSite=Lax');
-    expect(stateCookie?.split(';')[0].split('=')[1]).toBe(location.searchParams.get('state'));
+    expect(res.headers.location).toBe('https://project.supabase.co/auth/v1/authorize?provider=github');
+    expect(supabaseOAuth.start).toHaveBeenCalledWith('http://localhost:3001/api/auth/callback');
+    const flowCookie = ([] as string[]).concat(res.headers['set-cookie']).find((c) => c.startsWith('rp_oauth_flow='));
+    expect(flowCookie).toContain('HttpOnly');
+    expect(flowCookie).toContain('SameSite=Lax');
   });
 
-  it('rejects a callback whose state does not match', async () => {
-    const res = await request(app)
-      .get('/api/auth/callback?code=abc&state=forged')
-      .set('Cookie', 'rp_oauth_state=expected');
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('http://localhost:5173/login?error=state_mismatch');
+  it('shows an error instead of crashing when Supabase is unreachable', async () => {
+    vi.spyOn(supabaseOAuth, 'start').mockRejectedValue(new Error('network'));
+    const res = await request(app).get('/api/auth/github');
+    expect(res.headers.location).toBe('http://localhost:5173/login?error=sign_in_failed');
   });
 
-  it('rejects a callback with no state cookie', async () => {
-    const res = await request(app).get('/api/auth/callback?code=abc&state=x');
+  it('rejects a callback without the PKCE cookie (started elsewhere or forged)', async () => {
+    const res = await request(app).get('/api/auth/callback?code=abc');
     expect(res.headers.location).toBe('http://localhost:5173/login?error=state_mismatch');
   });
 
   it('reports a cancelled authorization', async () => {
-    const res = await request(app)
-      .get('/api/auth/callback?error=access_denied&state=s')
-      .set('Cookie', 'rp_oauth_state=s');
+    const res = await callback('error=access_denied&error_description=denied');
     expect(res.headers.location).toBe('http://localhost:5173/login?error=access_denied');
   });
 
-  describe('when GitHub rejects the code as already used (duplicate callback)', () => {
+  it('exchanges the code with the sealed state and opens a RepoPulse session', async () => {
+    vi.spyOn(authService, 'completeLogin').mockResolvedValue('new-session-token');
+    const res = await callback('code=abc');
+    expect(authService.completeLogin).toHaveBeenCalledWith('abc', 'sealed');
+    expect(res.headers.location).toBe('http://localhost:5173/repositories');
+    const cookies = String(res.headers['set-cookie']);
+    expect(cookies).toContain('rp_session=new-session-token');
+    expect(cookies).toContain('rp_oauth_flow=; Path=/');
+  });
+
+  describe('when the code was already used (duplicate callback request)', () => {
     const usedCode = () =>
       vi
-        .spyOn(githubApp.oauth, 'createToken')
-        .mockRejectedValue(Object.assign(new Error('bad code'), { status: 400, response: { data: { error: 'bad_verification_code' } } }));
+        .spyOn(supabaseOAuth, 'exchange')
+        .mockRejectedValue(new AppError('OAUTH_CODE_INVALID', 'The sign-in code was already used or has expired', 400));
 
     it('restarts sign-in once instead of failing', async () => {
       usedCode();
-      const res = await request(app).get('/api/auth/callback?code=used&state=s').set('Cookie', 'rp_oauth_state=s');
+      const res = await callback('code=used');
       expect(res.headers.location).toBe('http://localhost:3001/api/auth/github');
       expect(String(res.headers['set-cookie'])).toContain('rp_oauth_retry=1');
     });
 
     it('does not loop: a second failure shows a clear error', async () => {
       usedCode();
-      const res = await request(app)
-        .get('/api/auth/callback?code=used&state=s')
-        .set('Cookie', 'rp_oauth_state=s; rp_oauth_retry=1');
+      const res = await callback('code=used', 'rp_oauth_flow=sealed; rp_oauth_retry=1');
       expect(res.headers.location).toBe('http://localhost:5173/login?error=oauth_code_invalid');
     });
 
     it('goes to the app when the first request already signed the user in', async () => {
       usedCode();
       signedIn();
-      const res = await request(app)
-        .get('/api/auth/callback?code=used&state=s')
-        .set('Cookie', `rp_oauth_state=s; rp_session=${TEST_SESSION_TOKEN}`);
+      const res = await callback('code=used', `rp_oauth_flow=sealed; rp_session=${TEST_SESSION_TOKEN}`);
       expect(res.headers.location).toBe('http://localhost:5173/repositories');
     });
   });

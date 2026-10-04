@@ -1,13 +1,11 @@
 import { env } from '../../config/env.js';
-import { githubApp } from '../../config/github.js';
 import { userRepository } from '../../repositories/userRepository.js';
 import { installationRepository } from '../../repositories/installationRepository.js';
 import type { SessionInfo, User } from '../../types/index.js';
-import { generateToken } from '../../utils/crypto.js';
-import { AppError } from '../../utils/errors.js';
 import { discoverForUser } from '../github/discoveryService.js';
 import { createAppOctokit, createUserOctokit, toGitHubError } from '../github/octokit.js';
-import { sessionService, type GitHubUserTokens } from './sessionService.js';
+import { sessionService } from './sessionService.js';
+import { supabaseOAuth } from './supabaseOAuth.js';
 
 let installUrlCache: Promise<string | null> | null = null;
 
@@ -25,32 +23,17 @@ function getInstallUrl(): Promise<string | null> {
 }
 
 export const authService = {
-  /** GitHub authorize URL plus the CSRF state the callback must echo back. */
-  beginLogin(): { url: string; state: string } {
-    const state = generateToken(16);
-    const { url } = githubApp.oauth.getWebFlowAuthorizationUrl({
-      redirectUrl: `${env.BACKEND_URL}/api/auth/callback`,
-      state,
-    });
-    return { url, state };
+  /**
+   * Starts GitHub sign-in through Supabase Auth. Returns the URL to send the browser to
+   * and the sealed PKCE state the callback needs (stored in a cookie).
+   */
+  beginLogin(): Promise<{ url: string; flow: string }> {
+    return supabaseOAuth.start(`${env.BACKEND_URL}/api/auth/callback`);
   },
 
-  /** Exchanges the OAuth code, records the user, opens a session. Returns the session cookie token. */
-  async completeLogin(code: string): Promise<string> {
-    let tokens: GitHubUserTokens;
-    try {
-      const { authentication } = await githubApp.oauth.createToken({ code });
-      tokens = authentication;
-    } catch (err) {
-      // GitHub answers a bad exchange with an OAuth error code (status 400)
-      const oauthError = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
-      if (oauthError === 'bad_verification_code') {
-        // Code already used (e.g. the callback was requested twice) or expired
-        throw new AppError('OAUTH_CODE_INVALID', 'The GitHub sign-in code was already used or has expired', 400);
-      }
-      if (oauthError) console.error(`[auth] GitHub code exchange failed: ${oauthError}`);
-      throw toGitHubError(err, 'GitHub sign-in failed');
-    }
+  /** Exchanges the callback code (via Supabase), records the user, opens a session. Returns the session cookie token. */
+  async completeLogin(code: string, flow: string): Promise<string> {
+    const tokens = await supabaseOAuth.exchange(code, flow);
 
     let ghUser;
     try {

@@ -8,20 +8,22 @@ import { sendSuccess } from '../utils/response.js';
 import { AppError } from '../utils/errors.js';
 import {
   clearCookie,
+  OAUTH_FLOW_COOKIE,
   OAUTH_RETRY_COOKIE,
-  OAUTH_STATE_COOKIE,
   readCookie,
   SESSION_COOKIE,
   setCookie,
 } from '../utils/cookies.js';
 
-const OAUTH_STATE_TTL_SECONDS = 10 * 60;
+const OAUTH_FLOW_TTL_SECONDS = 10 * 60;
 const OAUTH_RETRY_TTL_SECONDS = 60;
 
 const callbackQuery = z.object({
   code: z.string().min(1).optional(),
-  state: z.string().min(1).optional(),
-  error: z.string().optional(), // e.g. access_denied when the user cancels
+  // Errors from GitHub or Supabase, e.g. access_denied when the user cancels
+  error: z.string().optional(),
+  error_code: z.string().optional(),
+  error_description: z.string().optional(),
 });
 
 // The callback is a browser navigation, so failures redirect to the login page
@@ -30,27 +32,37 @@ function redirectToLogin(res: Response, errorCode: string): void {
   res.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(errorCode)}`);
 }
 
-export function handleGithubLogin(_req: Request, res: Response): void {
-  const { url, state } = authService.beginLogin();
-  // Lax: must survive the top-level redirect back from github.com
-  setCookie(res, OAUTH_STATE_COOKIE, state, { maxAgeSeconds: OAUTH_STATE_TTL_SECONDS, sameSite: 'lax' });
-  res.redirect(url);
+export async function handleGithubLogin(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { url, flow } = await authService.beginLogin();
+    // Lax: must survive the top-level redirect back from Supabase/GitHub. The PKCE
+    // verifier inside also binds the callback to this browser (CSRF protection).
+    setCookie(res, OAUTH_FLOW_COOKIE, flow, { maxAgeSeconds: OAUTH_FLOW_TTL_SECONDS, sameSite: 'lax' });
+    res.redirect(url);
+  } catch (err) {
+    console.error('[auth] could not start sign-in:', err);
+    if (!res.headersSent) redirectToLogin(res, 'sign_in_failed');
+    else next(err);
+  }
 }
 
 export async function handleGithubCallback(req: Request, res: Response): Promise<void> {
-  const expectedState = readCookie(req, OAUTH_STATE_COOKIE);
-  clearCookie(res, OAUTH_STATE_COOKIE, 'lax');
+  const flow = readCookie(req, OAUTH_FLOW_COOKIE);
+  clearCookie(res, OAUTH_FLOW_COOKIE, 'lax');
 
   const parsed = callbackQuery.safeParse(req.query);
   if (!parsed.success) return redirectToLogin(res, 'invalid_callback');
-  const { code, state, error } = parsed.data;
+  const { code, error, error_code, error_description } = parsed.data;
 
-  if (error) return redirectToLogin(res, error === 'access_denied' ? 'access_denied' : 'github_error');
+  if (error) {
+    if (error !== 'access_denied') console.warn(`[auth] sign-in error from provider: ${error} ${error_code ?? ''} ${error_description ?? ''}`);
+    return redirectToLogin(res, error === 'access_denied' ? 'access_denied' : 'github_error');
+  }
   if (!code) return redirectToLogin(res, 'invalid_callback');
-  if (!expectedState || state !== expectedState) return redirectToLogin(res, 'state_mismatch');
+  if (!flow) return redirectToLogin(res, 'state_mismatch');
 
   try {
-    const sessionToken = await authService.completeLogin(code);
+    const sessionToken = await authService.completeLogin(code, flow);
     setCookie(res, SESSION_COOKIE, sessionToken, { maxAgeSeconds: SESSION_TTL_SECONDS });
     clearCookie(res, OAUTH_RETRY_COOKIE, 'lax');
     res.redirect(`${env.FRONTEND_URL}/repositories`);

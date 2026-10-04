@@ -121,10 +121,11 @@ Use a separate App from development, or edit the existing one:
 | Setting | Value |
 |---|---|
 | Homepage URL | `https://repopulse-shankar.vercel.app` |
-| Callback URL | `https://repopulse-shankar.vercel.app/api/auth/callback` (frontend) |
+| Callback URL | `https://<project-ref>.supabase.co/auth/v1/callback` (Supabase Auth; see below) |
 | Webhook URL | `https://repopulse-shankar-api.vercel.app/api/webhooks/github` (backend) |
 | Webhook secret | same as `GITHUB_WEBHOOK_SECRET` |
 | Permissions / events | see `architecture/github-app-setup.md` |
+| Account permission | **Email addresses: Read** (Supabase reads the user's email) |
 | Visibility | **Public** (*Advanced → Make this GitHub App public*) so other GitHub users can install it |
 
 A **private** App can only be installed on the account that owns it. Anyone else who
@@ -137,6 +138,20 @@ AI quotas.
 Editing the development App moves its callback and webhook to production, so local
 sign-in and the smee relay stop working until they are changed back. A separate
 production App avoids that; it then needs its own keys in the backend project.
+
+## 5b. Supabase Auth
+
+GitHub sign-in runs through Supabase Auth's GitHub provider, server-side
+(`architecture/auth.md`). In the Supabase dashboard → **Authentication**:
+
+| Setting | Value |
+|---|---|
+| Providers → GitHub | Enabled; Client ID / Client Secret = the GitHub App's |
+| URL Configuration → Site URL | `https://repopulse-shankar.vercel.app` |
+| URL Configuration → Redirect URLs | `https://repopulse-shankar.vercel.app/api/auth/callback` (and `http://localhost:3001/api/auth/callback` for development) |
+
+The redirect URL is the **frontend** domain's `/api/auth/callback` (it equals
+`BACKEND_URL`), so the session cookie lands on the frontend domain.
 
 ## 6. Verify
 
@@ -185,9 +200,11 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 | Build fails: `No Output Directory named "public"` (backend) | `backend/public/` missing | Restore `backend/public/robots.txt` |
 | API answers `SERVER_MISCONFIGURED` | `NODEJS_HELPERS` not `0` on the backend | Set it, then Redeploy |
 | `/api/...` on the frontend returns 404 or HTML | Rewrite destination wrong | Fix the backend domain in `frontend/vercel.json` |
-| GitHub: "redirect_uri is not associated with this application" | Callback URL mismatch | App callback = `<frontend>/api/auth/callback`; `BACKEND_URL` = frontend URL |
 | Signed in, but immediately signed out / 401 everywhere | Cookie set for the wrong host | Use the app only via the frontend domain; `BACKEND_URL`/`FRONTEND_URL` = frontend URL |
 | Other users sign in but *Install GitHub App* shows a GitHub 404 | The App is private | App → *Advanced* → **Make public** |
+| Login page: "The sign-in service (Supabase Auth) returned an error" | Supabase provider misconfigured | Log line `[auth] Supabase code exchange failed: …`; check the provider's client ID/secret and that the App has *Email addresses: Read* |
+| GitHub: "redirect_uri is not associated with this application" (after Supabase) | App callback isn't Supabase's | App Callback URL = `https://<project-ref>.supabase.co/auth/v1/callback` |
+| Supabase redirects to the Site URL instead of `/api/auth/callback` | Redirect URL not allowed | Add `<frontend>/api/auth/callback` under Supabase *Redirect URLs* |
 | "Signing in with GitHub failed"; backend log shows `GITHUB_ERROR` with `githubStatus: 400` | GitHub rejected the sign-in code, usually because the callback was requested twice (slow first sign-in, double click) | Handled automatically: the backend restarts sign-in once (`rp_oauth_retry` cookie) or continues if already signed in. If it persists, check `[auth] GitHub code exchange failed: <reason>` in the logs; `incorrect_client_credentials` means `GITHUB_CLIENT_SECRET` is wrong |
 | Webhook deliveries fail with 401 | Secret mismatch | Same value in GitHub App and `GITHUB_WEBHOOK_SECRET`; Redeploy after changing |
 | Sync stays *Syncing* | Function stopped at its time limit | Wait 10 minutes and sync again; the backfill continues |

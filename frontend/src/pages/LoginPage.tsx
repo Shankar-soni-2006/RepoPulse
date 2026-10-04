@@ -12,6 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   github_rate_limited: 'GitHub rate limit reached. Please try again in a few minutes.',
   invalid_callback: 'GitHub returned an incomplete response. Please try again.',
   oauth_code_invalid: 'The GitHub sign-in link was already used or has expired. Please try again.',
+  supabase_auth_error: 'The sign-in service (Supabase Auth) returned an error. Please try again.',
 };
 const GENERIC_ERROR = 'Signing in with GitHub failed. Please try again.';
 

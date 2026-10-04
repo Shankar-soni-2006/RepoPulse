@@ -1,15 +1,39 @@
 # Authentication and authorization
 
-## Sign-in (GitHub App OAuth web flow)
+## Sign-in (GitHub through Supabase Auth, server-side PKCE)
 
-1. `GET /api/auth/github`: the backend creates a random `state`, stores it in a short-lived
-   `rp_oauth_state` cookie (HttpOnly, SameSite=Lax, 10 min) and redirects to GitHub.
-2. `GET /api/auth/callback`: the backend verifies `state` against the cookie, exchanges the
-   code for a user token, upserts the user, creates a session and runs **repository
-   discovery**. Then it redirects to `${FRONTEND_URL}/repositories`. Failures redirect to
-   `/login?error=<code>`.
-3. Discovery failure does not block sign-in; the user can run it again from the
+GitHub sign-in goes through **Supabase Auth's GitHub provider**, configured with the
+**GitHub App's** client ID and secret. The whole exchange runs on the backend
+(`services/auth/supabaseOAuth.ts`); the browser never talks to Supabase.
+
+```
+browser → GET /api/auth/github → Supabase /auth/v1/authorize → github.com (authorize)
+        → Supabase /auth/v1/callback → GET /api/auth/callback?code=… → /repositories
+```
+
+1. `GET /api/auth/github`: the backend asks supabase-js (PKCE flow) for the authorize URL
+   with `redirect_to = ${BACKEND_URL}/api/auth/callback`. The PKCE code verifier is
+   **encrypted** (`TOKEN_ENCRYPTION_KEY`) into the `rp_oauth_flow` cookie (HttpOnly,
+   SameSite=Lax, 10 min). Only the browser that started sign-in can finish it, which is
+   the CSRF protection.
+2. `GET /api/auth/callback`: the backend exchanges `code` + verifier with Supabase
+   (`exchangeCodeForSession`). From the result it uses only `provider_token` and
+   `provider_refresh_token`, a **GitHub App user token**, then revokes the Supabase
+   session. It reads the GitHub profile, upserts the user, creates the RepoPulse session
+   and runs **repository discovery**, then redirects to `${FRONTEND_URL}/repositories`.
+   Failures redirect to `/login?error=<code>`.
+3. Supabase does not report GitHub token lifetimes, so the backend assumes GitHub App
+   defaults: 8 h access token, ~6 months refresh token. Tokens are refreshed with the App's
+   own credentials (`githubApp.oauth.refreshToken`).
+4. A code that was already used (for example the callback was requested twice) restarts
+   sign-in once (`rp_oauth_retry` cookie), or continues if the browser is already signed in.
+5. Discovery failure does not block sign-in; the user can run it again from the
    repositories page (`POST /api/repositories/discover`).
+
+Why not Supabase sessions: RepoPulse needs the GitHub token for installation discovery and
+keeps refreshing it. Supabase hands the provider token over only once and doesn't refresh
+it, so RepoPulse keeps its own session (below) and stores the tokens itself. Supabase
+`auth.users` gets a row per signed-in user as a side effect.
 
 ## Sessions
 

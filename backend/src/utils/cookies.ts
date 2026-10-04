@@ -2,7 +2,8 @@ import type { Request, Response } from 'express';
 import { env } from '../config/env.js';
 
 export const SESSION_COOKIE = 'rp_session';
-export const OAUTH_STATE_COOKIE = 'rp_oauth_state';
+/** Sealed (encrypted) Supabase PKCE state between sign-in start and callback */
+export const OAUTH_FLOW_COOKIE = 'rp_oauth_flow';
 /** Marks an automatic sign-in restart so a failing exchange can't loop */
 export const OAUTH_RETRY_COOKIE = 'rp_oauth_retry';
 
