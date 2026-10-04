@@ -9,6 +9,7 @@ import { analyticsRepository } from '../src/repositories/analyticsRepository.js'
 import { GitHubService } from '../src/services/github/githubService.js';
 import * as ingest from '../src/services/sync/ingest.js';
 import type { Repository, WebhookEvent } from '../src/types/index.js';
+import { cacheService } from '../src/services/cache/cacheService.js';
 import { REPO_ID } from './helpers.js';
 
 vi.mock('../src/repositories/webhookEventRepository.js');
@@ -174,6 +175,16 @@ describe('webhookService.process', () => {
     expect(analyticsRepository.refreshDailyMetrics).toHaveBeenCalledWith(REPO_ID, '2026-09-20', '2026-10-03');
     expect(webhookEventRepository.markProcessing).toHaveBeenCalledWith('evt-1');
     expect(webhookEventRepository.markProcessed).toHaveBeenCalledWith('evt-1');
+  });
+
+  it('invalidates cached analytics once the update is stored', async () => {
+    const invalidate = vi.spyOn(cacheService, 'invalidateRepository');
+    await webhookService.process(
+      event('pull_request', { action: 'opened', repository: repositoryPayload, pull_request: { number: 7, created_at: '2026-09-20T08:00:00Z' } }),
+      NOW,
+    );
+    expect(invalidate).toHaveBeenCalledWith(REPO_ID);
+    invalidate.mockRestore();
   });
 
   it('handles review events the same way (reviews come with the PR)', async () => {

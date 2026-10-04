@@ -5,6 +5,7 @@ import { commitRepository } from '../../repositories/commitRepository.js';
 import type { Repository } from '../../types/index.js';
 import { AppError } from '../../utils/errors.js';
 import { analyticsService } from '../analytics/analyticsService.js';
+import { cacheService } from '../cache/cacheService.js';
 import { GitHubService } from '../github/githubService.js';
 import { normalizeRepository } from '../github/normalizer.js';
 import { backfillCommitStats, fetchPullRequests, storeActivity } from './ingest.js';
@@ -101,6 +102,7 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
 
     // The next incremental sync starts from when this one started
     await repositoryRepository.markSyncSucceeded(repo.id, startedAt.toISOString(), dataSince);
+    await cacheService.invalidateRepository(repo.id);
     console.log(`[sync] ${ghRepo.full_name} done`, summary);
     return summary;
   } catch (err) {
@@ -108,6 +110,8 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
     await repositoryRepository
       .markSyncFailed(repo.id, failureMessage(err))
       .catch((markErr: Error) => console.error('[sync] could not record failure:', markErr.message));
+    // Part of the data may have been written before the failure
+    await cacheService.invalidateRepository(repo.id);
     throw err;
   }
 }

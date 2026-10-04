@@ -12,6 +12,7 @@ import { sessionRepository } from '../src/repositories/sessionRepository.js';
 import { accessRepository } from '../src/repositories/accessRepository.js';
 import { analyticsRepository } from '../src/repositories/analyticsRepository.js';
 import { syncService } from '../src/services/sync/syncService.js';
+import { cacheService } from '../src/services/cache/cacheService.js';
 import { GitHubError } from '../src/utils/errors.js';
 import type { Repository } from '../src/types/index.js';
 import { authHeaders, REPO_ID, testSession, testUser } from './helpers.js';
@@ -281,6 +282,21 @@ describe('sync engine', () => {
     await syncService.runNow(REPO_ID);
     expect(vi.mocked(repositoryRepository.markSyncSucceeded).mock.calls[0][2]).toBe('2026-04-01T00:00:00.000Z');
     expect(analyticsRepository.refreshDailyMetrics).toHaveBeenCalledWith(REPO_ID, '2026-04-01', '2026-10-03');
+  });
+
+  it('invalidates cached analytics after a successful sync', async () => {
+    const invalidate = vi.spyOn(cacheService, 'invalidateRepository');
+    await syncService.runNow(REPO_ID);
+    expect(invalidate).toHaveBeenCalledWith(REPO_ID);
+    invalidate.mockRestore();
+  });
+
+  it('invalidates cached analytics after a failed sync (data may be partly written)', async () => {
+    const invalidate = vi.spyOn(cacheService, 'invalidateRepository');
+    vi.mocked(commitRepository.insertNew).mockRejectedValue(new Error('db down'));
+    await expect(syncService.runNow(REPO_ID)).rejects.toThrow();
+    expect(invalidate).toHaveBeenCalledWith(REPO_ID);
+    invalidate.mockRestore();
   });
 
   it('fails the sync if daily metrics cannot be recomputed', async () => {

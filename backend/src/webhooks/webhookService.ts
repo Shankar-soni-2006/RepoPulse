@@ -4,6 +4,7 @@ import { webhookEventRepository } from '../repositories/webhookEventRepository.j
 import type { Repository, WebhookEvent } from '../types/index.js';
 import { AppError } from '../utils/errors.js';
 import { analyticsService } from '../services/analytics/analyticsService.js';
+import { cacheService } from '../services/cache/cacheService.js';
 import { GitHubService } from '../services/github/githubService.js';
 import { backfillCommitStats, fetchPullRequests, storeActivity } from '../services/sync/ingest.js';
 import {
@@ -144,6 +145,7 @@ async function process(event: WebhookEvent, now = new Date()): Promise<WebhookEv
     const from =
       affectedFrom && Date.parse(affectedFrom) > Date.parse(repo.dataSince) ? affectedFrom : repo.dataSince;
     await analyticsService.refreshDailyMetrics(repo.id, from, now);
+    await cacheService.invalidateRepository(repo.id);
 
     await webhookEventRepository.markProcessed(event.id);
     return 'processed';
@@ -157,6 +159,8 @@ async function process(event: WebhookEvent, now = new Date()): Promise<WebhookEv
     await webhookEventRepository
       .markFailed(event.id, message)
       .catch((markErr: Error) => console.error('[webhook] could not record failure:', markErr.message));
+    // Part of the update may have been written before the failure
+    if (event.repositoryId) await cacheService.invalidateRepository(event.repositoryId);
     return 'failed';
   }
 }
