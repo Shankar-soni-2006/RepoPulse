@@ -7,8 +7,13 @@ Triggered by `POST /api/repositories/:id/sync` (returns **202** and the reposito
 ## Locking
 
 `claim_repository_sync()` (migration 005) atomically moves the repository to `syncing`.
-A second request gets **409 SYNC_IN_PROGRESS**. A claim older than 30 minutes counts as
-abandoned (for example, the server restarted mid-sync) and can be reclaimed.
+A second request gets **409 SYNC_IN_PROGRESS**. A claim older than 10 minutes counts as
+abandoned (for example, the server restarted, or a serverless function was stopped at its
+time limit) and can be reclaimed.
+
+On Vercel the sync runs after the 202 response through `waitUntil`, inside the function's
+300-second limit. Commit-stat fetching stops 180 seconds after the sync started; the
+remaining commits are picked up by the next sync.
 
 ## Window
 

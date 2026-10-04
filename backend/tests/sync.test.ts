@@ -12,6 +12,7 @@ import { sessionRepository } from '../src/repositories/sessionRepository.js';
 import { accessRepository } from '../src/repositories/accessRepository.js';
 import { analyticsRepository } from '../src/repositories/analyticsRepository.js';
 import { syncService } from '../src/services/sync/syncService.js';
+import { backfillCommitStats } from '../src/services/sync/ingest.js';
 import { cacheService } from '../src/services/cache/cacheService.js';
 import { GitHubError } from '../src/utils/errors.js';
 import type { Repository } from '../src/types/index.js';
@@ -256,6 +257,13 @@ describe('sync engine', () => {
     const summary = await syncService.runNow(REPO_ID);
     expect(commitRepository.saveStats).toHaveBeenCalledWith([]);
     expect(summary).toMatchObject({ commitStatsFetched: 0, commitStatsPending: 1 });
+  });
+
+  it('stops fetching commit stats at the deadline and leaves the rest for the next sync', async () => {
+    const fetched = await backfillCommitStats(github as unknown as GitHubService, REPO_ID, { owner: 'acme', name: 'api' }, 10, Date.now() - 1);
+    expect(fetched).toBe(0);
+    expect(github.getCommit).not.toHaveBeenCalled();
+    expect(commitRepository.saveStats).toHaveBeenCalledWith([]);
   });
 
   it('marks success with the sync start time and the start of imported data', async () => {

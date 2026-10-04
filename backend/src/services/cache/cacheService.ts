@@ -104,6 +104,23 @@ export const cacheService = {
     return { value, cache: 'MISS' };
   },
 
+  /**
+   * Increments a counter that expires `windowSeconds` after its first increment and
+   * returns the new count, or null when Redis is unavailable (callers fall back).
+   */
+  async increment(key: string, windowSeconds: number): Promise<number | null> {
+    const r = redis();
+    if (!r) return null;
+    try {
+      const count = await r.incr(key);
+      if (count === 1) await r.expire(key, windowSeconds);
+      return count;
+    } catch (err) {
+      warn(`INCR ${key}`, err);
+      return null;
+    }
+  },
+
   /** Drops every cached analytics entry for a repository after its data changed. */
   async invalidateRepository(repositoryId: string): Promise<void> {
     const r = getClients()?.durable;

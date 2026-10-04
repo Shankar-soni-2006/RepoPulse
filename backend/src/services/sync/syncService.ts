@@ -4,19 +4,24 @@ import { repositoryRepository } from '../../repositories/repositoryRepository.js
 import { commitRepository } from '../../repositories/commitRepository.js';
 import type { Repository } from '../../types/index.js';
 import { AppError } from '../../utils/errors.js';
+import { runInBackground } from '../../utils/background.js';
 import { analyticsService } from '../analytics/analyticsService.js';
 import { cacheService } from '../cache/cacheService.js';
 import { GitHubService } from '../github/githubService.js';
 import { normalizeRepository } from '../github/normalizer.js';
 import { backfillCommitStats, fetchPullRequests, storeActivity } from './ingest.js';
 
-// A 'syncing' claim older than this is treated as abandoned (e.g. server restart)
-const STALE_SYNC_MINUTES = 30;
+// A 'syncing' claim older than this is treated as abandoned (server restart, or a
+// serverless function stopped at its time limit; Vercel allows at most 5 minutes)
+const STALE_SYNC_MINUTES = 10;
 // Re-read a little before the last sync to absorb clock skew and in-flight updates
 const INCREMENTAL_OVERLAP_HOURS = 1;
 // Commit stats cost one request each: cap per sync and keep a rate-limit reserve
 const MAX_COMMIT_STATS_PER_SYNC = 1000;
 const RATE_LIMIT_RESERVE = 300;
+// Stop fetching commit stats after this long so the whole sync fits in a 300 s
+// serverless function; the rest are fetched by the next sync
+const COMMIT_STATS_DEADLINE_MS = 180_000;
 
 export interface SyncSummary {
   repositoryId: string;
@@ -80,7 +85,13 @@ async function runSync(repo: Repository): Promise<SyncSummary> {
       MAX_COMMIT_STATS_PER_SYNC,
       (await github.getRemainingRequests()) - RATE_LIMIT_RESERVE,
     );
-    const commitStatsFetched = await backfillCommitStats(github, repo.id, ref, budget);
+    const commitStatsFetched = await backfillCommitStats(
+      github,
+      repo.id,
+      ref,
+      budget,
+      startedAt.getTime() + COMMIT_STATS_DEADLINE_MS,
+    );
 
     // Earliest point covered by synced data (only ever moves back in time)
     const dataSince =
@@ -131,9 +142,11 @@ export const syncService = {
    */
   async start(repositoryId: string): Promise<Repository> {
     const repo = await claim(repositoryId);
-    runSync(repo).catch(() => {
-      // Already logged and recorded on the repository by runSync
-    });
+    runInBackground(
+      runSync(repo).catch(() => {
+        // Already logged and recorded on the repository by runSync
+      }),
+    );
     return repo;
   },
 

@@ -37,3 +37,6 @@ supabase/.temp/
 
 # Local Claude Code config
 .claude/
+
+# Vercel CLI (local link and build output)
+.vercel/

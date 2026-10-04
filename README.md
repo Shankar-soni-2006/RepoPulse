@@ -60,7 +60,8 @@ npm run build
 ```
 
 ## Deployment
-Vercel (frontend), Render (backend), Supabase, Upstash: see `docs/deployment.md`.
+One Vercel project serves the frontend and runs the Express API as a serverless function;
+Supabase and Upstash as before. See `docs/deployment.md`.
 
 ## Documentation
 - `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, GitHub App setup

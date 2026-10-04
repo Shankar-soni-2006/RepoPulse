@@ -101,9 +101,12 @@ export async function backfillCommitStats(
   repositoryId: string,
   { owner, name }: RepoRef,
   limit: number,
+  /** Epoch ms after which remaining commits are left for a later sync */
+  deadline = Infinity,
 ): Promise<number> {
   const missing = await commitRepository.findMissingStats(repositoryId, limit);
   const withStats = await mapWithConcurrency(missing, GITHUB_CONCURRENCY, async (row) => {
+    if (Date.now() > deadline) return null;
     try {
       return { ...row, ...statsOf(await github.getCommit(owner, name, row.sha)) };
     } catch (err) {

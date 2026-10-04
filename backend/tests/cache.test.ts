@@ -24,6 +24,8 @@ let fake: {
   set: ReturnType<typeof vi.fn>;
   del: ReturnType<typeof vi.fn>;
   ping: ReturnType<typeof vi.fn>;
+  incr: ReturnType<typeof vi.fn>;
+  expire: ReturnType<typeof vi.fn>;
 };
 
 function useRedis(configured: boolean) {
@@ -43,6 +45,12 @@ beforeEach(() => {
     }),
     del: vi.fn(async (...keys: string[]) => keys.filter((k) => store.delete(k)).length),
     ping: vi.fn(async () => 'PONG'),
+    incr: vi.fn(async (k: string) => {
+      const n = ((store.get(k) as number | undefined) ?? 0) + 1;
+      store.set(k, n);
+      return n;
+    }),
+    expire: vi.fn(async () => 1),
   };
   vi.mocked(Redis).mockImplementation(function () {
     return fake as unknown as Redis;
@@ -119,6 +127,22 @@ describe('cacheService.invalidateRepository', () => {
     fake.del.mockRejectedValue(new Error('down'));
     await expect(cacheService.invalidateRepository(REPO_ID)).resolves.toBeUndefined();
     expect(fake.del).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('cacheService.increment', () => {
+  it('counts in Redis and sets the window expiry once', async () => {
+    expect(await cacheService.increment('ai:calls:u:1', 3600)).toBe(1);
+    expect(await cacheService.increment('ai:calls:u:1', 3600)).toBe(2);
+    expect(fake.expire).toHaveBeenCalledTimes(1);
+    expect(fake.expire).toHaveBeenCalledWith('ai:calls:u:1', 3600);
+  });
+
+  it('returns null when Redis is unavailable so callers can fall back', async () => {
+    fake.incr.mockRejectedValue(new Error('timeout'));
+    expect(await cacheService.increment('k', 60)).toBeNull();
+    useRedis(false);
+    expect(await cacheService.increment('k', 60)).toBeNull();
   });
 });
 

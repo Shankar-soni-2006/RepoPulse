@@ -4,6 +4,7 @@ import { sessionRepository } from '../repositories/sessionRepository.js';
 import { accessRepository } from '../repositories/accessRepository.js';
 import type { Session, User } from '../types/index.js';
 import { readCookie, SESSION_COOKIE } from '../utils/cookies.js';
+import { runInBackground } from '../utils/background.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/errors.js';
 
 export interface AuthContext {
@@ -33,8 +34,10 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       req.auth = resolved;
       // Throttled activity timestamp; failure here must not fail the request
       if (Date.now() - Date.parse(resolved.session.lastSeenAt) > TOUCH_INTERVAL_MS) {
-        sessionRepository.touch(resolved.session.id).catch((err: Error) =>
-          console.warn('[auth] failed to touch session:', err.message),
+        runInBackground(
+          sessionRepository
+            .touch(resolved.session.id)
+            .catch((err: Error) => console.warn('[auth] failed to touch session:', err.message)),
         );
       }
     }

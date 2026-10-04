@@ -59,14 +59,24 @@ function userPrompt(mode: AIInsightMode, context: AIContext, question?: string):
   return parts.join('\n\n');
 }
 
-// ---- per-user call limit (in-memory; one backend instance) ----
+// ---- per-user call limit ----
+// Counted in Redis so it holds across serverless instances; in memory (per instance)
+// when Redis is unavailable.
 const callLog = new Map<string, number[]>();
 
-function takeUserCall(userId: string, now = Date.now()): void {
-  const recent = (callLog.get(userId) ?? []).filter((t) => now - t < 3_600_000);
-  if (recent.length >= USER_CALLS_PER_HOUR) {
-    throw new AppError('AI_USER_LIMIT', `AI analysis is limited to ${USER_CALLS_PER_HOUR} requests per hour`, 429);
+const limitError = () =>
+  new AppError('AI_USER_LIMIT', `AI analysis is limited to ${USER_CALLS_PER_HOUR} requests per hour`, 429);
+
+async function takeUserCall(userId: string, now = Date.now()): Promise<void> {
+  const hour = Math.floor(now / 3_600_000);
+  const count = await cacheService.increment(`ai:calls:${userId}:${hour}`, 3600);
+  if (count !== null) {
+    if (count > USER_CALLS_PER_HOUR) throw limitError();
+    return;
   }
+
+  const recent = (callLog.get(userId) ?? []).filter((t) => now - t < 3_600_000);
+  if (recent.length >= USER_CALLS_PER_HOUR) throw limitError();
   recent.push(now);
   callLog.set(userId, recent);
 }
@@ -183,7 +193,7 @@ export const aiService = {
     const { value, cache } = await cacheService.getOrLoad(
       key,
       async (): Promise<AIInsightResult> => {
-        takeUserCall(req.userId);
+        await takeUserCall(req.userId);
         const messages: ChatMessage[] = [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt(req.mode, context, question) },

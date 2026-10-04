@@ -87,7 +87,8 @@ is covered by tests; it wasn't exercised live because no fallback key was config
   a new key automatically.
 - **No call** for repositories never synced (409 `AI_NO_DATA`) or with no activity in
   either period (422 `AI_NO_ACTIVITY`).
-- **Per-user limit:** 20 provider calls per hour (429 `AI_USER_LIMIT`).
+- **Per-user limit:** 20 provider calls per clock hour (429 `AI_USER_LIMIT`), counted in Redis so
+  it holds across serverless instances; counted per instance in memory when Redis is unavailable.
 
 ## Errors
 
