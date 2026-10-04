@@ -12,6 +12,10 @@ export type {
   Repository,
   PullRequestStatus,
   PullRequest,
+  PullRequestSort,
+  PullRequestListQuery,
+  PullRequestDetail,
+  WebhookEventSummary,
   ReviewState,
   Review,
   ContributorActivity,
@@ -35,21 +39,3 @@ export type {
   SessionInfo,
   DiscoveryResult,
 } from '@shared/contracts';
-
-import type { PullRequestStatus } from '@shared/contracts';
-
-// ============================================================
-// UI STATE TYPES
-// ============================================================
-
-export interface PaginationParams {
-  page: number;
-  limit: number;
-}
-
-export interface PullRequestFilters {
-  status?: PullRequestStatus;
-  search?: string;
-  from?: string;
-  to?: string;
-}

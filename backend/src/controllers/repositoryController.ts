@@ -5,6 +5,8 @@ import { sessionService } from '../services/auth/sessionService.js';
 import { discoverForUser } from '../services/github/discoveryService.js';
 import { sendSuccess } from '../utils/response.js';
 import { NotFoundError } from '../utils/errors.js';
+import { webhookEventRepository } from '../repositories/webhookEventRepository.js';
+import { z } from 'zod';
 import { syncService } from '../services/sync/syncService.js';
 
 export async function listRepositories(
@@ -59,6 +61,18 @@ export async function syncRepository(
   try {
     const repo = await syncService.start(req.params.repositoryId);
     sendSuccess(res, repo, 202);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const webhookEventsQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(20) });
+
+// Recent webhook deliveries for the repository (status only, no payloads)
+export async function listWebhookEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { limit } = webhookEventsQuery.parse(req.query);
+    sendSuccess(res, await webhookEventRepository.findRecentForRepository(req.params.repositoryId, limit));
   } catch (err) {
     next(err);
   }

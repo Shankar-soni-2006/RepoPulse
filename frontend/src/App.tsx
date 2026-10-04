@@ -1,17 +1,24 @@
+import { lazy, Suspense } from 'react';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { RequireAuth } from './components/layout/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { RepositoriesPage } from './pages/RepositoriesPage';
-import { OverviewPage } from './pages/OverviewPage';
-import { PullRequestsPage } from './pages/PullRequestsPage';
-import { ContributorsPage } from './pages/ContributorsPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { AIInsightsPage } from './pages/AIInsightsPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { LoadingState } from './components/ui/States';
 import { ApiRequestError } from './services/api';
 import { SESSION_QUERY_KEY } from './hooks/useSession';
+
+// Repository pages load on demand, so sign-in and the repository list don't
+// download the charting library
+const OverviewPage = lazy(() => import('./pages/OverviewPage').then((m) => ({ default: m.OverviewPage })));
+const PullRequestsPage = lazy(() => import('./pages/PullRequestsPage').then((m) => ({ default: m.PullRequestsPage })));
+const ContributorsPage = lazy(() => import('./pages/ContributorsPage').then((m) => ({ default: m.ContributorsPage })));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
+const AIInsightsPage = lazy(() => import('./pages/AIInsightsPage').then((m) => ({ default: m.AIInsightsPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+
+const page = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>;
 
 const isClientError = (err: unknown) =>
   err instanceof ApiRequestError && err.status >= 400 && err.status < 500;
@@ -45,12 +52,12 @@ export default function App() {
             <Route path="/repositories" element={<RepositoriesPage />} />
             <Route path="/repositories/:repositoryId" element={<AppShell />}>
               <Route index element={<Navigate to="overview" replace />} />
-              <Route path="overview" element={<OverviewPage />} />
-              <Route path="pull-requests" element={<PullRequestsPage />} />
-              <Route path="contributors" element={<ContributorsPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="ai-insights" element={<AIInsightsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route path="overview" element={page(<OverviewPage />)} />
+              <Route path="pull-requests" element={page(<PullRequestsPage />)} />
+              <Route path="contributors" element={page(<ContributorsPage />)} />
+              <Route path="analytics" element={page(<AnalyticsPage />)} />
+              <Route path="ai-insights" element={page(<AIInsightsPage />)} />
+              <Route path="settings" element={page(<SettingsPage />)} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/repositories" replace />} />

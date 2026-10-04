@@ -88,6 +88,29 @@ export interface PullRequest {
   closedAt: string | null;
 }
 
+export type PullRequestSort =
+  | 'created'
+  | 'updated'
+  | 'merged'
+  | 'firstReview'
+  | 'cycleTime'
+  | 'prSize'
+  | 'reviewCount'
+  | 'number';
+
+export interface PullRequestListQuery {
+  status?: PullRequestStatus;
+  /** Title text, or a PR number ("142" / "#142") */
+  search?: string;
+  /** created_at range, ISO dates */
+  from?: string;
+  to?: string;
+  sort?: PullRequestSort;
+  order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
 export type ReviewState = 'approved' | 'changes_requested' | 'commented' | 'dismissed' | 'pending';
 
 export interface Review {
@@ -101,6 +124,22 @@ export interface Review {
   /** null for pending (unsubmitted) reviews */
   submittedAt: string | null;
   createdAt: string;
+}
+
+export interface PullRequestDetail extends PullRequest {
+  /** Oldest first; pending reviews last */
+  reviews: Review[];
+}
+
+export interface WebhookEventSummary {
+  id: string;
+  eventType: string;
+  action: string | null;
+  status: 'received' | 'processing' | 'processed' | 'ignored' | 'failed';
+  /** Reason for ignored/failed */
+  processingError: string | null;
+  createdAt: string;
+  processedAt: string | null;
 }
 
 /**

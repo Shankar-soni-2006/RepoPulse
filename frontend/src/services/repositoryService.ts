@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { DiscoveryResult, Repository } from '../types';
+import type { DiscoveryResult, Repository, WebhookEventSummary } from '../types';
 
 export const repositoryService = {
   list: () => api.get<Repository[]>('/api/repositories'),
@@ -8,4 +8,7 @@ export const repositoryService = {
   sync: (id: string) => api.post<Repository>(`/api/repositories/${id}/sync`),
   /** Re-reads the user's GitHub App installations and repositories */
   discover: () => api.post<DiscoveryResult>('/api/repositories/discover'),
+  /** Recent webhook deliveries (status only) */
+  webhookEvents: (id: string, limit = 20) =>
+    api.get<WebhookEventSummary[]>(`/api/repositories/${id}/webhook-events?limit=${limit}`),
 };

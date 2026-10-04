@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import type { Paginated, PullRequest } from '../types/index.js';
+import type { Paginated, PullRequest, PullRequestListQuery, PullRequestSort } from '../types/index.js';
 import { chunk } from '../utils/batch.js';
 
 const UPSERT_BATCH = 200; // PR bodies can be large
@@ -65,14 +65,21 @@ function toPullRequest(row: PullRequestRow): PullRequest {
   };
 }
 
-export interface PRFilters {
-  status?: string;
-  search?: string;
-  from?: string;
-  to?: string;
-  page?: number;
-  limit?: number;
-}
+export type PRFilters = PullRequestListQuery;
+
+const SORT_COLUMNS: Record<PullRequestSort, string> = {
+  created: 'created_at',
+  updated: 'updated_at',
+  merged: 'merged_at',
+  firstReview: 'first_review_at',
+  cycleTime: 'cycle_time',
+  prSize: 'pr_size',
+  reviewCount: 'review_count',
+  number: 'number',
+};
+
+// Literal match: escape LIKE wildcards and the escape character itself
+export const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export const pullRequestRepository = {
   findPeriodEvidence: (...args: Parameters<typeof findPeriodEvidence>) => findPeriodEvidence(...args),
@@ -89,11 +96,19 @@ export const pullRequestRepository = {
       .from('pull_requests')
       .select('*', { count: 'exact' })
       .eq('repository_id', repositoryId)
-      .order('created_at', { ascending: false })
+      // Rows without a value for the sort column (e.g. unmerged PRs by merge date) go last
+      .order(SORT_COLUMNS[filters.sort ?? 'created'], { ascending: filters.order === 'asc', nullsFirst: false })
+      .order('number', { ascending: false })
       .range(from, from + limit - 1);
 
     if (filters.status) query = query.eq('status', filters.status);
-    if (filters.search) query = query.ilike('title', `%${filters.search}%`);
+    const search = filters.search?.trim();
+    if (search) {
+      const asNumber = /^#?(\d+)$/.exec(search);
+      query = asNumber
+        ? query.eq('number', Number(asNumber[1]))
+        : query.ilike('title', `%${escapeLike(search)}%`);
+    }
     if (filters.from) query = query.gte('created_at', filters.from);
     if (filters.to) query = query.lte('created_at', filters.to);
 
