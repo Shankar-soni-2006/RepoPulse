@@ -24,7 +24,15 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_URL: optional(z.string().url()),
   UPSTASH_REDIS_REST_TOKEN: optional(z.string()),
 
-  GEMINI_API_KEY: optional(z.string()),
+  // AI insights: any OpenAI-compatible chat-completions API. Without AI_API_KEY the
+  // AI endpoint reports "not configured"; analytics are unaffected.
+  AI_API_KEY: optional(z.string()),
+  AI_BASE_URL: z.string().url().default('https://api.groq.com/openai/v1'),
+  AI_MODEL: z.string().default('openai/gpt-oss-120b'),
+  // Optional second provider, used when the first is rate-limited or unavailable
+  AI_FALLBACK_API_KEY: optional(z.string()),
+  AI_FALLBACK_BASE_URL: z.string().url().default('https://api.cerebras.ai/v1'),
+  AI_FALLBACK_MODEL: z.string().default('gpt-oss-120b'),
 
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   // Public URL of this API — used to build the GitHub OAuth callback URL

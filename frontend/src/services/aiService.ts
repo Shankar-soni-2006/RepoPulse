@@ -1,7 +1,8 @@
 import { api } from './api';
-import type { AIInsightResponse } from '../types';
+import type { AIInsightMode, AIInsightResult, TimePeriod } from '../types';
 
 export const aiService = {
-  getInsights: (repositoryId: string, period: { from: string; to: string }, question?: string) =>
-    api.post<AIInsightResponse>('/api/ai/insights', { repositoryId, period, question }),
+  /** AI interpretation of backend-computed metrics. Analytics never depend on this call. */
+  getInsights: (repositoryId: string, mode: AIInsightMode, days: TimePeriod, question?: string) =>
+    api.post<AIInsightResult>('/api/ai/insights', { repositoryId, mode, days, question }),
 };

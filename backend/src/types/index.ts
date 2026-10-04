@@ -28,6 +28,8 @@ export type {
   AIInsightRequest,
   AIInsight,
   AIInsightResponse,
+  AIInsightMode,
+  AIInsightResult,
   SessionUser,
   InstallationSummary,
   SessionInfo,

@@ -3,7 +3,7 @@
 React + Vite + TypeScript client for the RepoPulse API.
 
 The frontend talks **only** to the RepoPulse Express API (`src/services/`). It never calls
-GitHub, Supabase, Redis or Gemini directly, and it never computes authoritative metrics —
+GitHub, Supabase, Redis or the AI provider directly, and it never computes authoritative metrics —
 it renders what the backend returns.
 
 ## Development

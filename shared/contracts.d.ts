@@ -229,9 +229,23 @@ export interface Analytics extends MetricsSummary {
 
 // ---- AI ----
 
+/**
+ * What the analysis should focus on:
+ * - summary      overall repository engineering summary
+ * - trends       explain how metrics moved vs the previous period
+ * - anomalies    unusual values or sudden changes
+ * - bottlenecks  where work waits (reviews, large PRs, backlog)
+ * - comparison   compare this period with the previous one, metric by metric
+ * - question     answer `question` from the data
+ */
+export type AIInsightMode = 'summary' | 'trends' | 'anomalies' | 'bottlenecks' | 'comparison' | 'question';
+
 export interface AIInsightRequest {
   repositoryId: string;
-  period: { from: string; to: string };
+  /** Analysis period; defaults to 30 */
+  days?: TimePeriod;
+  mode: AIInsightMode;
+  /** Required when mode is 'question'; max 500 characters */
   question?: string;
 }
 
@@ -239,8 +253,11 @@ export interface AIInsight {
   title: string;
   type: 'trend' | 'anomaly' | 'bottleneck' | 'comparison' | 'observation';
   severity: 'low' | 'medium' | 'high';
+  /** What the data shows (backend-computed values only) */
   fact: string;
+  /** Specific supporting data points */
   evidence: string[];
+  /** A hypothesis, not an established fact */
   possibleExplanation: string;
   recommendedInvestigation: string;
 }
@@ -248,7 +265,23 @@ export interface AIInsight {
 export interface AIInsightResponse {
   summary: string;
   insights: AIInsight[];
+  /** Caveats from the data plus any the model added */
   dataLimitations: string[];
+}
+
+export interface AIInsightResult extends AIInsightResponse {
+  meta: {
+    mode: AIInsightMode;
+    period: AnalyticsPeriod;
+    /** Provider host and model that produced the answer */
+    provider: string;
+    model: string;
+    generatedAt: string;
+    /** True when served from cache (same data, same question) */
+    cached: boolean;
+    /** Insights dropped because they cited numbers absent from the supplied data */
+    rejectedInsights: number;
+  };
 }
 
 // ---- Auth / session ----

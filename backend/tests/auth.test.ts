@@ -149,7 +149,7 @@ describe('repository authorization', () => {
     const res = await request(app)
       .post('/api/ai/insights')
       .set(authHeaders)
-      .send({ repositoryId: REPO_ID, period: { from: '2026-09-01', to: '2026-09-30' } });
+      .send({ repositoryId: REPO_ID, mode: 'summary' });
     expect(res.status).toBe(404);
   });
 });

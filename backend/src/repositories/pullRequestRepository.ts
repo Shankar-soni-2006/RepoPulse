@@ -75,6 +75,8 @@ export interface PRFilters {
 }
 
 export const pullRequestRepository = {
+  findPeriodEvidence: (...args: Parameters<typeof findPeriodEvidence>) => findPeriodEvidence(...args),
+
   async findByRepository(
     repositoryId: string,
     filters: PRFilters = {},
@@ -159,3 +161,80 @@ export const pullRequestRepository = {
     return (data as PullRequestRow[]).map(toPullRequest);
   },
 };
+
+export interface PullRequestEvidence {
+  number: number;
+  title: string;
+  prSize: number;
+  /** hours */
+  cycleTime: number | null;
+  /** hours */
+  firstReviewTime: number | null;
+  reviewCount: number;
+  createdAt: string;
+  mergedAt: string | null;
+}
+
+interface EvidenceRow {
+  number: number;
+  title: string;
+  pr_size: number;
+  cycle_time: number | string | null;
+  first_review_time: number | string | null;
+  review_count: number;
+  created_at: string;
+  merged_at: string | null;
+}
+
+const EVIDENCE_COLUMNS = 'number, title, pr_size, cycle_time, first_review_time, review_count, created_at, merged_at';
+
+function toEvidence(r: EvidenceRow): PullRequestEvidence {
+  return {
+    number: r.number,
+    title: r.title,
+    prSize: Number(r.pr_size),
+    cycleTime: r.cycle_time === null ? null : Number(r.cycle_time),
+    firstReviewTime: r.first_review_time === null ? null : Number(r.first_review_time),
+    reviewCount: r.review_count,
+    createdAt: r.created_at,
+    mergedAt: r.merged_at,
+  };
+}
+
+/** Specific PRs behind the aggregate metrics of a period, for AI evidence. No author data. */
+export async function findPeriodEvidence(
+  repositoryId: string,
+  from: Date,
+  to: Date,
+  limit = 5,
+): Promise<{ slowestMerged: PullRequestEvidence[]; largestMerged: PullRequestEvidence[]; awaitingReview: PullRequestEvidence[] }> {
+  const merged = () =>
+    supabase
+      .from('pull_requests')
+      .select(EVIDENCE_COLUMNS)
+      .eq('repository_id', repositoryId)
+      .gte('merged_at', from.toISOString())
+      .lt('merged_at', to.toISOString());
+
+  const [slowest, largest, waiting] = await Promise.all([
+    merged().order('cycle_time', { ascending: false }).limit(limit),
+    merged().order('pr_size', { ascending: false }).limit(limit),
+    // Open at period end with no review yet, oldest first
+    supabase
+      .from('pull_requests')
+      .select(EVIDENCE_COLUMNS)
+      .eq('repository_id', repositoryId)
+      .eq('status', 'open')
+      .is('first_review_at', null)
+      .lt('created_at', to.toISOString())
+      .order('created_at', { ascending: true })
+      .limit(limit),
+  ]);
+  for (const r of [slowest, largest, waiting]) if (r.error) throw r.error;
+
+  return {
+    slowestMerged: (slowest.data as EvidenceRow[]).map(toEvidence),
+    largestMerged: (largest.data as EvidenceRow[]).map(toEvidence),
+    awaitingReview: (waiting.data as EvidenceRow[]).map(toEvidence),
+  };
+}

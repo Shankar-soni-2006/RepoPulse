@@ -8,7 +8,7 @@ RepoPulse connects to GitHub, synchronizes repository activity, calculates engin
 - **Backend**: Node.js + Express + TypeScript + Octokit + Zod
 - **Database**: Supabase (PostgreSQL)
 - **Cache**: Upstash Redis
-- **AI**: Google Gemini API
+- **AI**: OpenAI-compatible LLM API (Groq primary, Cerebras fallback)
 
 ## Project Structure
 ```
