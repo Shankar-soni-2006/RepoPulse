@@ -191,11 +191,41 @@ describe('OAuth flow (GitHub via Supabase Auth)', () => {
   it('exchanges the code with the sealed state and opens a RepoPulse session', async () => {
     vi.spyOn(authService, 'completeLogin').mockResolvedValue('new-session-token');
     const res = await callback('code=abc');
-    expect(authService.completeLogin).toHaveBeenCalledWith('abc', 'sealed');
+    expect(authService.completeLogin).toHaveBeenCalledWith('abc', 'sealed', { requireAdmin: false });
     expect(res.headers.location).toBe('http://localhost:5173/repositories');
     const cookies = String(res.headers['set-cookie']);
     expect(cookies).toContain('rp_session=new-session-token');
     expect(cookies).toContain('rp_oauth_flow=; Path=/');
+  });
+
+  describe('admin login form (?as=admin)', () => {
+    it('remembers the admin form during sign-in and clears it for the member form', async () => {
+      vi.spyOn(supabaseOAuth, 'start').mockResolvedValue({ url: 'https://project.supabase.co/auth/v1/authorize', flow: 'sealed' });
+      const admin = await request(app).get('/api/auth/github?as=admin');
+      expect(String(admin.headers['set-cookie'])).toMatch(/rp_login_as=admin;[^,]*HttpOnly/);
+      const member = await request(app).get('/api/auth/github');
+      expect(String(member.headers['set-cookie'])).toContain('rp_login_as=; Path=/');
+    });
+
+    it('sends admins to the Admin page', async () => {
+      vi.spyOn(authService, 'completeLogin').mockResolvedValue('admin-session');
+      const res = await callback('code=abc', 'rp_oauth_flow=sealed; rp_login_as=admin');
+      expect(authService.completeLogin).toHaveBeenCalledWith('abc', 'sealed', { requireAdmin: true });
+      expect(res.headers.location).toBe('http://localhost:5173/admin');
+    });
+
+    it('refuses non-admins without signing them in, back on the admin form', async () => {
+      vi.spyOn(authService, 'completeLogin').mockRejectedValue(new AppError('NOT_ADMIN', 'This GitHub account is not a RepoPulse admin', 403));
+      const res = await callback('code=abc', 'rp_oauth_flow=sealed; rp_login_as=admin');
+      expect(res.headers.location).toBe('http://localhost:5173/login?error=not_admin&as=admin');
+      expect(String(res.headers['set-cookie'])).not.toContain('rp_session=');
+    });
+
+    it('keeps the admin form when sign-in restarts after a reused code', async () => {
+      vi.spyOn(supabaseOAuth, 'exchange').mockRejectedValue(new AppError('OAUTH_CODE_INVALID', 'used', 400));
+      const res = await callback('code=used', 'rp_oauth_flow=sealed; rp_login_as=admin');
+      expect(res.headers.location).toBe('http://localhost:3001/api/auth/github?as=admin');
+    });
   });
 
   describe('when the code was already used (duplicate callback request)', () => {

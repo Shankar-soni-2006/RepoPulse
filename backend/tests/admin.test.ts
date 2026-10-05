@@ -128,6 +128,17 @@ describe('suspended accounts', () => {
     expect(sessionRepository.create).not.toHaveBeenCalled();
   });
 
+  it('the admin login form refuses members before creating a session', async () => {
+    vi.spyOn(supabaseOAuth, 'exchange').mockResolvedValue({ token: 'ghu_x' });
+    vi.mocked(userRepository.upsertFromGitHub).mockResolvedValue(testUser);
+    const profile = vi.fn().mockResolvedValue({ data: { id: 42, login: 'octocat', name: null, email: null, avatar_url: '' } });
+    const octokit = await import('../src/services/github/octokit.js');
+    vi.spyOn(octokit, 'createUserOctokit').mockReturnValue({ users: { getAuthenticated: profile } } as never);
+
+    await expect(authService.completeLogin('code', 'flow', { requireAdmin: true })).rejects.toMatchObject({ code: 'NOT_ADMIN' });
+    expect(sessionRepository.create).not.toHaveBeenCalled();
+  });
+
   it('see their role in the session info', async () => {
     signedInAs(testAdmin);
     vi.spyOn(authService, 'getSessionInfo').mockImplementation(async (u) => ({

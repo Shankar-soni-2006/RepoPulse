@@ -287,7 +287,7 @@ RepoPulse/
 | File | Screen |
 |---|---|
 | `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
-| `LoginPage.tsx` | "Continue with GitHub"; explains sign-in errors; API-unreachable notice; links to the terms and privacy policy |
+| `LoginPage.tsx` | **Member / Admin** sign-in forms (both GitHub; the admin form only lets admins in and lands on the Admin page); explains sign-in errors; API-unreachable notice; terms and privacy links |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
 | `PullRequestsPage.tsx` | PR table: filters, sorting, pagination, detail drawer; state in the URL |
@@ -353,6 +353,7 @@ RepoPulse/
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
 | `pages/AdminPage.test.tsx` | Members blocked, overview and users, no actions on yourself, promote/suspend/delete with confirmation, admins protected, refused actions explained |
+| `pages/LoginPage.test.tsx` | Member form by default, switch to the admin form (kept in the URL), not-admin message, signed-in redirects by role |
 | `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
@@ -395,7 +396,8 @@ RepoPulse has **two layers of access**, and both apply to every request:
 
 | Privilege | Member | Admin |
 |---|:---:|:---:|
-| Sign in with GitHub, sign out | ✅ | ✅ |
+| Sign in with GitHub on the **Member** form, sign out | ✅ | ✅ |
+| Sign in on the **Admin** form (lands on the Admin page) | ❌ refused before any session (`NOT_ADMIN`) | ✅ |
 | Install the GitHub App, manage which repositories it can read (on GitHub) | ✅ | ✅ |
 | See the repository list (repositories GitHub gives *them* access to) | ✅ | ✅ |
 | Refresh repositories from GitHub | ✅ | ✅ |
@@ -425,6 +427,7 @@ RepoPulse has **two layers of access**, and both apply to every request:
 | Admins can't be suspended or deleted | `admin_set_suspended`, `admin_delete_user` (SQL) | 409 `TARGET_IS_ADMIN` |
 | Nobody acts on their own account | `adminService` | 409 `SELF_ACTION` |
 | Suspended users are out | Suspension deletes sessions; `authenticate` refuses any remaining session; sign-in refused | 401 / login page "account suspended" |
+| The Admin login form lets only admins in | `completeLogin(..., { requireAdmin })` checks the role **before** creating a session; the form choice travels in the `rp_login_as` cookie | 403 → login page "isn’t a RepoPulse admin" |
 | Admin changes need the CSRF header | `requireClientHeader` covers `/api/admin` | 403 `CSRF_HEADER_MISSING` |
 | Only the backend can call the admin SQL functions | `revoke … from anon, authenticated`; granted to `service_role` only | — |
 
@@ -433,7 +436,9 @@ RepoPulse has **two layers of access**, and both apply to every request:
 - **Everyone starts as member** on first sign-in.
 - **The first admin** is set from the command line (the user must have signed in once):
   `npm run admin:role -- <github-login> admin`. Also use it to recover if needed.
-- **After that, admins manage roles** on the Admin page (account menu → **Admin**).
+- **After that, admins manage roles** on the Admin page (account menu → **Admin**, or sign in
+  on the login page's **Admin** form to land there directly).
+- **Choosing a form doesn't change your role.** The Admin form only checks it.
 - Signing in again never changes a role or a suspension; only admins (or the command) do.
 
 ### 6.4 Where it is implemented
@@ -445,9 +450,9 @@ RepoPulse has **two layers of access**, and both apply to every request:
 | Backend access checks | `backend/src/middleware/auth.ts` (`requireAdmin`, suspended sessions), `backend/src/services/auth/authService.ts` (blocked sign-in, role in session info) |
 | Backend admin feature | `routes/admin.ts` → `controllers/adminController.ts` → `services/admin/adminService.ts` → `repositories/adminRepository.ts` |
 | Backend user data | `repositories/userRepository.ts`, `repositories/sessionRepository.ts` (role and suspension on every request) |
-| Frontend | `pages/AdminPage.tsx`, `services/adminService.ts`, `components/layout/AccountMenu.tsx` (role + Admin link), `pages/LoginPage.tsx` (suspended message) |
+| Frontend | `pages/AdminPage.tsx`, `services/adminService.ts`, `components/layout/AccountMenu.tsx` (role + Admin link), `pages/LoginPage.tsx` (Member/Admin forms, not-admin and suspended messages) |
 | Command line | `scripts/set-role.ts` (`npm run admin:role`) |
-| Tests | `backend/tests/admin.test.ts`, `backend/tests/db.roles.test.ts`, `frontend/src/pages/AdminPage.test.tsx` |
+| Tests | `backend/tests/admin.test.ts`, `backend/tests/auth.test.ts` (admin form), `backend/tests/db.roles.test.ts`, `frontend/src/pages/AdminPage.test.tsx`, `frontend/src/pages/LoginPage.test.tsx` |
 | Docs | `docs/architecture/auth.md` (Roles), `docs/database/schema.md`, `docs/deployment.md` (First admin) |
 
 ## 7. Benefits
@@ -462,7 +467,7 @@ RepoPulse has **two layers of access**, and both apply to every request:
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **242 backend + 63 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **247 backend + 68 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 8. Bottlenecks and limitations

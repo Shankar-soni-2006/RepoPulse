@@ -40,7 +40,8 @@ export const authService = {
   },
 
   /** Exchanges the callback code (via Supabase), records the user, opens a session. Returns the session cookie token. */
-  async completeLogin(code: string, flow: string): Promise<string> {
+  /** `requireAdmin`: the admin login form; non-admins are refused before any session exists. */
+  async completeLogin(code: string, flow: string, options: { requireAdmin?: boolean } = {}): Promise<string> {
     const tokens = await supabaseOAuth.exchange(code, flow);
 
     let ghUser;
@@ -59,6 +60,9 @@ export const authService = {
     });
     if (user.suspendedAt) {
       throw new AppError('ACCOUNT_SUSPENDED', 'This RepoPulse account has been suspended', 403);
+    }
+    if (options.requireAdmin && user.role !== 'admin') {
+      throw new AppError('NOT_ADMIN', 'This GitHub account is not a RepoPulse admin', 403);
     }
 
     const sessionToken = await sessionService.create(user.id, tokens);

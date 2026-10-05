@@ -67,6 +67,10 @@ it, so RepoPulse keeps its own session (below) and stores the tokens itself. Sup
 - `users.role` is `member` by default. Create the first admin with
   `npm run admin:role -- <github-login> admin` (the user must have signed in once);
   afterwards admins change roles on the Admin page.
+- **Login forms:** the login page has a **Member** and an **Admin** form, both GitHub sign-in.
+  The Admin form (`/api/auth/github?as=admin`, remembered in the `rp_login_as` cookie)
+  refuses accounts without the admin role **before** a session is created (`NOT_ADMIN`) and
+  sends admins to `/admin`. Picking a form never grants a role.
 - **Suspension** (`users.suspended_at`) deletes the user's sessions and blocks sign-in
   (`ACCOUNT_SUSPENDED`). A session that slips through is refused on its next request.
 - **Delete** removes the user, their sessions and access grants; repository activity shared

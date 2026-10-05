@@ -6,6 +6,8 @@ export const SESSION_COOKIE = 'rp_session';
 export const OAUTH_FLOW_COOKIE = 'rp_oauth_flow';
 /** Marks an automatic sign-in restart so a failing exchange can't loop */
 export const OAUTH_RETRY_COOKIE = 'rp_oauth_retry';
+/** Which login form started sign-in ("admin" only; members have no cookie) */
+export const LOGIN_AS_COOKIE = 'rp_login_as';
 
 export function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.cookie;
