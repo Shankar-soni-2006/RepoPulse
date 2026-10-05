@@ -1,7 +1,8 @@
 # RepoPulse — Project Guide
 
 A single reference for the whole repository: what RepoPulse is, its unique selling points,
-the folder structure, **what every file does**, the benefits and the known bottlenecks.
+the folder structure, **what every file does**, **admin and member privileges**, the benefits
+and the known bottlenecks.
 
 Live: **https://repopulse-shankar.vercel.app** · Last updated 2026-10-05
 
@@ -36,6 +37,7 @@ dashboard, with AI-written explanations that are checked against the real number
 5. **Secure by design.** Read-only GitHub access, per-user repository authorization,
    encrypted GitHub tokens, hashed session tokens, CSRF guard, signed webhooks, and the
    browser never talks to Supabase, Redis, GitHub or the AI provider directly.
+   **Two roles** (admin, member) on top of GitHub's own repository access (section 6).
 6. **Live updates.** GitHub webhooks update PRs, reviews and commits without a manual sync.
 7. **Free to run.** Fits the free tiers of Vercel, Supabase, Upstash and Groq.
 
@@ -72,8 +74,8 @@ RepoPulse/
 │   │   ├── config/          Environment, Supabase and GitHub App clients
 │   │   ├── routes/          URL → middleware → controller wiring
 │   │   ├── controllers/     HTTP in/out for each feature
-│   │   ├── middleware/      Auth, CSRF, validation, errors
-│   │   ├── services/        Business logic: auth, github, sync, analytics, cache, ai
+│   │   ├── middleware/      Auth, admin check, CSRF, validation, errors
+│   │   ├── services/        Business logic: auth, admin, github, sync, analytics, cache, ai
 │   │   ├── repositories/    Database access (one file per table/area)
 │   │   ├── webhooks/        GitHub webhook verification and processing
 │   │   ├── schemas/         Shared Zod request schemas
@@ -83,15 +85,15 @@ RepoPulse/
 ├── frontend/                React app
 │   ├── public/              Static assets (favicon)
 │   └── src/
-│       ├── pages/           One file per screen
+│       ├── pages/           One file per screen (incl. the admin-only Admin page)
 │       ├── components/      UI building blocks, grouped by feature
 │       ├── hooks/           Data fetching and URL state
 │       ├── services/        Typed API client per backend area
 │       ├── types/ utils/    Shared types and formatters
 │       └── test/            Test setup and render helpers
 ├── shared/                  API contract types used by both sides
-├── supabase/                SQL migrations (001–007), config, seed placeholder
-├── scripts/                 Ops scripts: sync, metric recalculation, live smoke test
+├── supabase/                SQL migrations (001–008; 008 = roles), config, seed placeholder
+├── scripts/                 Ops scripts: sync, metric recalculation, set role, live smoke test
 ├── docs/                    Architecture, database, deployment, requirements
 └── (root)                   README, workspace package.json, .env.example, git config
 ```
@@ -378,7 +380,77 @@ RepoPulse/
 | `docs/requirements/test-report.md` | Test suites and scenario coverage |
 | `docs/project-guide.md` | This document |
 
-## 6. Benefits
+## 6. Roles and privileges: admin and member
+
+RepoPulse has **two layers of access**, and both apply to every request:
+
+1. **GitHub access decides which repositories you can see.** You only see repositories
+   you can access on GitHub through the RepoPulse GitHub App (`user_repositories`).
+   This applies to **everyone, admins included**. A repository you can't access answers
+   **404**, so its existence isn't revealed.
+2. **Your RepoPulse role decides what you can do in the app itself.** Every user is a
+   **member** by default; **admins** additionally manage users and see the system overview.
+
+### 6.1 Privileges by role
+
+| Privilege | Member | Admin |
+|---|:---:|:---:|
+| Sign in with GitHub, sign out | ✅ | ✅ |
+| Install the GitHub App, manage which repositories it can read (on GitHub) | ✅ | ✅ |
+| See the repository list (repositories GitHub gives *them* access to) | ✅ | ✅ |
+| Refresh repositories from GitHub | ✅ | ✅ |
+| Sync a repository they can access | ✅ | ✅ |
+| Overview, Pull Requests, Contributors, Analytics, Settings of those repositories | ✅ | ✅ |
+| AI Insights on those repositories (20 requests per hour each) | ✅ | ✅ |
+| Light/dark theme, home page, legal pages | ✅ | ✅ |
+| See repositories GitHub doesn't give them access to | ❌ | ❌ |
+| Open the **Admin** page (`/admin`) and the `/api/admin/*` endpoints | ❌ (403 `ADMIN_REQUIRED`) | ✅ |
+| See the **system overview** (users, admins, new users, suspended, active sessions, repositories, failed syncs, webhook failures in 24 h) | ❌ | ✅ |
+| See the **user list** (username, name, role, status, joined, last active, connected repositories) | ❌ | ✅ |
+| **Make another user admin**, or change an admin back to member | ❌ | ✅ |
+| **Suspend** a member (signs them out everywhere, blocks sign-in) and **reinstate** them | ❌ | ✅ |
+| **Delete** a member's account (account, sessions and access; shared repository data is kept) | ❌ | ✅ |
+| Change, suspend or delete **their own** account | ❌ | ❌ (`SELF_ACTION`) |
+| Suspend or delete **another admin** | ❌ | ❌ until that admin is changed to member (`TARGET_IS_ADMIN`) |
+| Remove the **last** active admin | ❌ | ❌ (`LAST_ADMIN`) |
+
+### 6.2 Rules that always hold
+
+| Rule | Enforced in | Error |
+|---|---|---|
+| New users are members | `users.role` default `'member'` (migration 008) | — |
+| Role is only `admin` or `member` | `users_role_check` constraint, API validation | 400 |
+| Members can't reach admin features | `requireAdmin` middleware on `/api/admin`; Admin page shows "Admin access required" | 403 `ADMIN_REQUIRED` |
+| At least one active admin exists | `admin_set_role` (SQL, locked so two demotions can't race) | 409 `LAST_ADMIN` |
+| Admins can't be suspended or deleted | `admin_set_suspended`, `admin_delete_user` (SQL) | 409 `TARGET_IS_ADMIN` |
+| Nobody acts on their own account | `adminService` | 409 `SELF_ACTION` |
+| Suspended users are out | Suspension deletes sessions; `authenticate` refuses any remaining session; sign-in refused | 401 / login page "account suspended" |
+| Admin changes need the CSRF header | `requireClientHeader` covers `/api/admin` | 403 `CSRF_HEADER_MISSING` |
+| Only the backend can call the admin SQL functions | `revoke … from anon, authenticated`; granted to `service_role` only | — |
+
+### 6.3 How roles are assigned
+
+- **Everyone starts as member** on first sign-in.
+- **The first admin** is set from the command line (the user must have signed in once):
+  `npm run admin:role -- <github-login> admin`. Also use it to recover if needed.
+- **After that, admins manage roles** on the Admin page (account menu → **Admin**).
+- Signing in again never changes a role or a suspension; only admins (or the command) do.
+
+### 6.4 Where it is implemented
+
+| Layer | Files |
+|---|---|
+| Database | `supabase/migrations/008_roles.sql` (columns, constraint, `admin_*` functions, grants) |
+| Shared types | `shared/contracts.d.ts`: `UserRole`, `SessionUser.role`, `AdminOverview`, `AdminUser`, `AdminUserUpdate` |
+| Backend access checks | `backend/src/middleware/auth.ts` (`requireAdmin`, suspended sessions), `backend/src/services/auth/authService.ts` (blocked sign-in, role in session info) |
+| Backend admin feature | `routes/admin.ts` → `controllers/adminController.ts` → `services/admin/adminService.ts` → `repositories/adminRepository.ts` |
+| Backend user data | `repositories/userRepository.ts`, `repositories/sessionRepository.ts` (role and suspension on every request) |
+| Frontend | `pages/AdminPage.tsx`, `services/adminService.ts`, `components/layout/AccountMenu.tsx` (role + Admin link), `pages/LoginPage.tsx` (suspended message) |
+| Command line | `scripts/set-role.ts` (`npm run admin:role`) |
+| Tests | `backend/tests/admin.test.ts`, `backend/tests/db.roles.test.ts`, `frontend/src/pages/AdminPage.test.tsx` |
+| Docs | `docs/architecture/auth.md` (Roles), `docs/database/schema.md`, `docs/deployment.md` (First admin) |
+
+## 7. Benefits
 
 | For | Benefit |
 |---|---|
@@ -386,13 +458,14 @@ RepoPulse/
 | Team leads | Spot bottlenecks (slow first review, large PRs, overloaded reviewers) early; check whether process changes help |
 | Managers | Period-over-period trends instead of anecdotes; AI summaries written for humans |
 | Security-minded teams | Read-only, per-user access; no secrets in the browser; encrypted tokens |
+| Admins | Manage who uses RepoPulse: roles, suspension, account deletion, system health at a glance |
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
 Quality evidence: **242 backend + 63 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
-## 7. Bottlenecks and limitations
+## 8. Bottlenecks and limitations
 
 | # | Bottleneck | Impact | Mitigation / next step |
 |---|---|---|---|
@@ -406,9 +479,10 @@ on production, every API endpoint checked against the shared contract.
 | 8 | **Metric limitations** | Daily buckets are UTC; bots count as contributors; reviews need a second person | Planned: timezone setting, bot filter |
 | 9 | **AI is interpretive** | Explanations are hypotheses, not facts | Labelled as such; numbers are grounded; analytics never depend on AI |
 | 10 | **Single-region, single-instance services** | No high availability beyond the providers' own | Acceptable for this scale; Supabase stays the source of truth if Redis fails |
-| 11 | **Tailwind 3 build-time advisory** (`braces`) | Build tooling only, never shipped to browsers | Planned: Tailwind 4 migration |
+| 11 | **Roles are app-wide** | An admin manages every user; there are no per-team or per-organization admins | Fine for one operator; team-scoped roles would need an extra table |
+| 12 | **Tailwind 3 build-time advisory** (`braces`) | Build tooling only, never shipped to browsers | Planned: Tailwind 4 migration |
 
-## 8. Where to start reading the code
+## 9. Where to start reading the code
 
 1. `shared/contracts.d.ts` — what the API returns.
 2. `backend/src/app.ts` — how requests flow.
