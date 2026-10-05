@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, LogOut, User } from 'lucide-react';
+import { ChevronDown, LogOut, ShieldCheck, User } from 'lucide-react';
 import { authService } from '@/services/authService';
 import { SESSION_QUERY_KEY } from '@/hooks/useSession';
 import type { SessionUser } from '@/types';
@@ -13,7 +13,7 @@ interface AccountMenuProps {
   placement?: 'up' | 'down';
 }
 
-export function Avatar({ user, size = 20 }: { user: SessionUser; size?: number }) {
+export function Avatar({ user, size = 20 }: { user: Pick<SessionUser, 'login' | 'avatarUrl'>; size?: number }) {
   if (!user.avatarUrl) {
     return (
       <span
@@ -93,7 +93,19 @@ export function AccountMenu({ user, placement = 'down' }: AccountMenuProps) {
           <div className="px-3 py-2 border-b border-border">
             <div className="text-xs text-muted-foreground">Signed in as</div>
             <div className="text-sm font-medium truncate">{user.name ?? user.login}</div>
+            <div className="text-[11px] text-muted-foreground">{user.role === 'admin' ? 'Admin' : 'Member'}</div>
           </div>
+          {user.role === 'admin' && (
+            <Link
+              to="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted/60"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Admin
+            </Link>
+          )}
           <button
             type="button"
             role="menuitem"

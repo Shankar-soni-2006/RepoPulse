@@ -124,6 +124,7 @@ RepoPulse/
 | `migrations/004_integrity_and_access.sql` | Data-integrity fixes (real GitHub timestamps, unknown commit stats as NULL), generated PR metric columns, access tables `user_installations` / `user_repositories`, `sessions` table |
 | `migrations/005_sync_engine.sql` | `claim_repository_sync()` (atomic sync lock) and `commits.is_merge` |
 | `migrations/006_schema_spec_alignment.sql` | Unique PR number per repo, `html_url` / `is_fork` / `is_archived`, sync and webhook status values |
+| `migrations/008_roles.sql` | **Roles**: `users.role` (admin/member) and `suspended_at`; admin functions (list users, overview, set role, suspend, delete) that enforce "always one admin" and "admins can't be suspended/deleted" |
 | `migrations/007_analytics_engine.sql` | The metric engine: `repository_period_metrics`, `contributor_activity`, `refresh_daily_metrics`; reshaped `daily_metrics`; `repositories.data_since` |
 | `config.toml` | Supabase CLI project config (placeholder project id) |
 | `seed.sql` | Intentionally empty: RepoPulse uses real GitHub data only |
@@ -162,6 +163,7 @@ RepoPulse/
 | `pullRequests.ts` | PR list per repository and standalone PR detail (`/api/pull-requests/:id`) |
 | `contributors.ts` | Contributor activity per repository |
 | `ai.ts` | `POST /api/ai/insights` |
+| `admin.ts` | `/api/admin/overview`, `/users`, `PATCH /users/:id` (role, suspend), `DELETE /users/:id`; admins only |
 | `webhooks.ts` | `POST /api/webhooks/github` (signature-authenticated, no session/CSRF) |
 
 ### 5.7 `backend/src/controllers/`
@@ -173,13 +175,14 @@ RepoPulse/
 | `analyticsController.ts` | Serves analytics, metrics and contributors through the Redis cache (`X-Cache` header) |
 | `pullRequestController.ts` | Paginated/filtered/sorted PR list; PR detail with access check (inaccessible = 404) |
 | `aiController.ts` | Validates the AI request and returns structured insights |
+| `adminController.ts` | Admin overview, user list, role/suspension updates and deletion (validated) |
 | `webhookController.ts` | Verifies and records a delivery, answers 202 immediately, processes it in the background |
 
 ### 5.8 `backend/src/middleware/`
 
 | File | What it does |
 |---|---|
-| `auth.ts` | Resolves the session cookie into `req.auth`; `requireAuth`; per-repository access check (404 when not allowed); CSRF header guard (`X-RepoPulse-Client`) |
+| `auth.ts` | Resolves the session cookie into `req.auth`; `requireAuth`; per-repository access check (404 when not allowed); CSRF header guard (`X-RepoPulse-Client`); `requireAdmin` (403 for members); suspended accounts refused (`ACCOUNT_SUSPENDED`) |
 | `validate.ts` | Zod validation of route parameters |
 | `error.ts` | Maps errors to the `{ success:false, error:{code,message} }` envelope; never leaks internals; 404 for unknown routes |
 
@@ -202,13 +205,14 @@ RepoPulse/
 | `ai/context.ts` | Builds the only data the model sees (precomputed, formatted metrics and example PRs) |
 | `ai/schema.ts` | Strict JSON schema sent to the model + Zod schema that validates its answer |
 | `ai/grounding.ts` | Checks that every number in the answer exists in the input (anti-hallucination) |
+| `admin/adminService.ts` | Admin actions; refuses actions on your own account (`SELF_ACTION`) |
 | `ai/aiService.ts` | Modes (summary, trends, anomalies, bottlenecks, question), prompt, per-user hourly limit (Redis), 6 h answer cache, rejected-insight reporting |
 
 ### 5.10 `backend/src/repositories/` (database access)
 
 | File | What it does |
 |---|---|
-| `userRepository.ts` | Upsert/read users from GitHub profiles |
+| `userRepository.ts` | Upsert/read users from GitHub profiles (never changes role or suspension); find by login |
 | `sessionRepository.ts` | Session rows: create, find valid by token hash (with user), touch, update tokens, delete |
 | `installationRepository.ts` | GitHub App installations and the ones a user can see |
 | `accessRepository.ts` | User ↔ installation / repository access (authorization source of truth), diffed and revoked in chunks |
@@ -218,6 +222,7 @@ RepoPulse/
 | `commitRepository.ts` | Insert new commits, find/save missing line stats |
 | `contributorRepository.ts` | Repository-scoped contributor identities |
 | `analyticsRepository.ts` | Calls the SQL metric functions and converts Postgres numerics |
+| `adminRepository.ts` | Calls the admin SQL functions and maps their rule errors (`LAST_ADMIN`, `TARGET_IS_ADMIN`) |
 | `webhookEventRepository.ts` | Records deliveries (duplicate-safe), status transitions, recent deliveries |
 
 ### 5.11 `backend/src/webhooks/`, `schemas/`, `types/`, `utils/`
@@ -251,6 +256,8 @@ RepoPulse/
 | `cache.test.ts` | Hit/miss, TTL, invalidation retries, Redis failures, counters |
 | `webhooks.test.ts` | Signatures, duplicates, processing per event type |
 | `ai.test.ts` | Provider fallback, grounding, caching, limits, failures |
+| `admin.test.ts` | Members get 403, CSRF, admin actions, self-protection, rule errors, suspended users signed out and blocked at sign-in |
+| `db.roles.test.ts` | Migration 008 on Postgres: default role, last-admin rule, suspension, admin protection, delete keeps repository data |
 | `failures.test.ts` | GitHub/database failure mapping, no detail leaks |
 
 ### 5.13 `frontend/` — configuration and entry
@@ -285,6 +292,7 @@ RepoPulse/
 | `ContributorsPage.tsx` | Contributor activity table |
 | `AnalyticsPage.tsx` | "This period vs previous" bar comparison, metrics table, and 10 daily trend charts (one unit per chart) |
 | `AIInsightsPage.tsx` | Analysis modes, free question, structured insights, clear AI-unavailable/no-activity states |
+| `AdminPage.tsx` | **Admins only** (`/admin`): system overview, user list with role/status/activity, make admin/member, suspend/reinstate, delete with confirmation |
 | `SettingsPage.tsx` | Sync status, GitHub connection, manage-repositories link, webhook deliveries |
 
 ### 5.15 `frontend/src/components/`
@@ -294,7 +302,7 @@ RepoPulse/
 | `layout/AppShell.tsx` | Sidebar/mobile drawer, repository switcher, outlet context with the current repository |
 | `layout/RequireAuth.tsx` | Redirects signed-out users to `/login`; retryable error when the API is down |
 | `layout/PageHeader.tsx` | Page title, period selector, actions |
-| `layout/AccountMenu.tsx` | Avatar menu with sign-out |
+| `layout/AccountMenu.tsx` | Avatar menu: role, **Admin** link for admins, sign-out |
 | `dashboard/MetricRow.tsx` | Metric tiles with value, previous value and change |
 | `dashboard/DataQualityNotice.tsx` | Always-visible caveats for the numbers on screen |
 | `charts/TrendChart.tsx` | Recharts line/bar chart with tooltip and table view; empty periods still draw axes and baseline with a note |
@@ -325,7 +333,7 @@ RepoPulse/
 | `hooks/useTheme.ts` | **App-wide light/dark theme**: system setting by default, saved choice (localStorage), synced across toggles and tabs, applied as the `dark` class on `<html>` |
 | `hooks/usePeriod.ts` | `?days=7|30|90` kept in the URL so views are shareable |
 | `services/api.ts` | Fetch wrapper: relative `/api`, credentials, CSRF header, envelope → typed result or `ApiRequestError` |
-| `services/{auth,repository,analytics,pullRequest,contributor,ai,system}Service.ts` | Typed calls for each backend area |
+| `services/{auth,repository,analytics,pullRequest,contributor,ai,system,admin}Service.ts` | Typed calls for each backend area |
 | `types/index.ts` | Re-exports the shared contract types |
 | `utils/format.ts` | Duration, date, number and percentage formatting |
 | `utils/cn.ts` | Class-name merge helper |
@@ -342,6 +350,7 @@ RepoPulse/
 | `components/layout/RequireAuth.test.tsx` | Redirect when signed out; API-down error without leaking the page |
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
+| `pages/AdminPage.test.tsx` | Members blocked, overview and users, no actions on yourself, promote/suspend/delete with confirmation, admins protected, refused actions explained |
 | `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
@@ -354,6 +363,7 @@ RepoPulse/
 |---|---|
 | `scripts/sync-repository.ts` | `npm run sync:repo -- <id>`: sync one repository and print a summary |
 | `scripts/calculate-metrics.ts` | `npm run metrics:recalculate -- <id>`: recompute daily metrics without GitHub |
+| `scripts/set-role.ts` | `npm run admin:role -- <login> admin|member`: set a role from the command line (first admin) |
 | `scripts/smoke-test.ts` | `npm run test:smoke`: 16 live end-to-end checks; `SMOKE_BASE_URL` targets a deployment |
 | `docs/architecture/auth.md` | Sign-in (Supabase PKCE), sessions, authorization |
 | `docs/architecture/sync.md` | Sync windows, locking, backfill, time limits |
@@ -379,7 +389,7 @@ RepoPulse/
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **224 backend + 57 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **242 backend + 63 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 7. Bottlenecks and limitations

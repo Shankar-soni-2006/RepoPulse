@@ -12,6 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: 'The sign-in attempt expired or was started in another tab. Please try again.',
   github_rate_limited: 'GitHub rate limit reached. Please try again in a few minutes.',
   invalid_callback: 'GitHub returned an incomplete response. Please try again.',
+  account_suspended: 'This account has been suspended. Contact the RepoPulse admin if you think this is a mistake.',
   oauth_code_invalid: 'The GitHub sign-in link was already used or has expired. Please try again.',
   supabase_auth_error: 'The sign-in service (Supabase Auth) returned an error. Please try again.',
 };

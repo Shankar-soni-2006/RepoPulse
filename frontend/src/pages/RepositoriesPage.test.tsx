@@ -13,7 +13,7 @@ vi.mock('@/services/repositoryService', () => ({
 vi.mock('@/services/authService', () => ({ authService: { me: vi.fn(), login: vi.fn(), logout: vi.fn() } }));
 
 const session = (installations: SessionInfo['installations']): SessionInfo => ({
-  user: { id: 'u', login: 'octocat', name: null, avatarUrl: null },
+  user: { id: 'u', login: 'octocat', name: null, avatarUrl: null, role: 'member' },
   installations,
   installUrl: 'https://github.com/apps/repopulse/installations/new',
 });

@@ -27,7 +27,7 @@ export function ContributorTable({ contributors, compact }: { contributors: Cont
           <Tr key={c.contributorId}>
             <Td>
               <span className="inline-flex items-center gap-2 min-w-0">
-                <Avatar user={{ id: c.contributorId, login: c.login, name: null, avatarUrl: c.avatarUrl }} size={18} />
+                <Avatar user={{ login: c.login, avatarUrl: c.avatarUrl }} size={18} />
                 <span className="font-medium truncate">{c.login}</span>
               </span>
             </Td>

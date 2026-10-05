@@ -20,6 +20,8 @@ interface SessionUserRow {
   login: string;
   name: string | null;
   avatar_url: string | null;
+  role: User['role'];
+  suspended_at: string | null;
 }
 
 function toSession(row: SessionRow): Session {
@@ -52,7 +54,7 @@ export const sessionRepository = {
   async findValidByTokenHash(tokenHash: string): Promise<{ session: Session; user: User } | null> {
     const { data, error } = await supabase
       .from('sessions')
-      .select('*, users!inner(id, github_id, login, name, avatar_url)')
+      .select('*, users!inner(id, github_id, login, name, avatar_url, role, suspended_at)')
       .eq('token_hash', tokenHash)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
@@ -67,6 +69,8 @@ export const sessionRepository = {
         login: row.users.login,
         name: row.users.name,
         avatarUrl: row.users.avatar_url,
+        role: row.users.role,
+        suspendedAt: row.users.suspended_at,
       },
     };
   },

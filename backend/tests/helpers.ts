@@ -13,7 +13,11 @@ export const testUser: User = {
   login: 'octocat',
   name: 'The Octocat',
   avatarUrl: null,
+  role: 'member',
+  suspendedAt: null,
 };
+
+export const testAdmin: User = { ...testUser, id: '00000000-0000-4000-8000-0000000000ad', login: 'admin-cat', role: 'admin' };
 
 export function testSession(overrides: Partial<Session> = {}): Session {
   return {

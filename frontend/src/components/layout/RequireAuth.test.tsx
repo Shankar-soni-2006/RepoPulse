@@ -36,7 +36,7 @@ describe('RequireAuth (unauthorized access)', () => {
 
   it('renders the page for a signed-in user', async () => {
     vi.mocked(authService.me).mockResolvedValue({
-      user: { id: 'u', login: 'octocat', name: null, avatarUrl: null },
+      user: { id: 'u', login: 'octocat', name: null, avatarUrl: null, role: 'member' },
       installations: [],
       installUrl: null,
     });

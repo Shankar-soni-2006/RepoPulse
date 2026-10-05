@@ -57,6 +57,27 @@ it, so RepoPulse keeps its own session (below) and stores the tokens itself. Sup
   existence isn't revealed. The PR detail and AI routes check the owning repository the
   same way.
 
+## Roles: admin and member (migration 008)
+
+| | Member (default) | Admin |
+|---|---|---|
+| Repositories, analytics, PRs, contributors, AI | Repositories GitHub gives them access to | **Same**: GitHub access still applies |
+| Admin page (`/admin`, `/api/admin/*`) | 403 `ADMIN_REQUIRED` | System overview; list users; change roles; suspend/reinstate; delete accounts |
+
+- `users.role` is `member` by default. Create the first admin with
+  `npm run admin:role -- <github-login> admin` (the user must have signed in once);
+  afterwards admins change roles on the Admin page.
+- **Suspension** (`users.suspended_at`) deletes the user's sessions and blocks sign-in
+  (`ACCOUNT_SUSPENDED`). A session that slips through is refused on its next request.
+- **Delete** removes the user, their sessions and access grants; repository activity shared
+  with other users is kept.
+- Rules enforced in SQL (`admin_set_role`, `admin_set_suspended`, `admin_delete_user`),
+  so concurrent requests can't break them: there is always at least one active admin
+  (`LAST_ADMIN`); admins can't be suspended or deleted until changed to member
+  (`TARGET_IS_ADMIN`). The API adds: admins can't act on their own account
+  (`SELF_ACTION`).
+- The admin functions are callable only by the backend's service role.
+
 ## CSRF
 
 State-changing requests must carry `X-RepoPulse-Client`. HTML forms can't set custom

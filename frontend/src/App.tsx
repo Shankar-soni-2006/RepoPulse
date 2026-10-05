@@ -17,6 +17,7 @@ const ContributorsPage = lazy(() => import('./pages/ContributorsPage').then((m) 
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
 const AIInsightsPage = lazy(() => import('./pages/AIInsightsPage').then((m) => ({ default: m.AIInsightsPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 // Public landing page with its animation libraries, loaded only when visited
 const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
 
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route path="/repositories" element={<RepositoriesPage />} />
+            <Route path="/admin" element={page(<AdminPage />)} />
             <Route path="/repositories/:repositoryId" element={<AppShell />}>
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={page(<OverviewPage />)} />

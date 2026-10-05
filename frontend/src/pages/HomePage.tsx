@@ -329,6 +329,11 @@ export function HomePage() {
                 To generate AI insights when you ask for them. Only computed metrics and a few example pull requests
                 (number, title, timings, size) are sent to the AI provider.
               </li>
+              <li>
+                To run the service: RepoPulse admins can see account details (username, name, role, sign-up and last
+                activity, number of connected repositories) to manage roles and suspend or delete accounts. Admins do not
+                get access to repositories GitHub doesn’t give them.
+              </li>
             </ul>
             <p className="mt-2">We do not sell your data, show ads, or use tracking or analytics cookies.</p>
           </div>

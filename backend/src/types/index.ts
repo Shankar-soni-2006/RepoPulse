@@ -3,6 +3,8 @@
 // re-exported here so backend code keeps one import path.
 // ============================================================
 
+import type { UserRole } from '@shared/contracts.js';
+
 export type {
   ApiSuccess,
   ApiError,
@@ -38,6 +40,10 @@ export type {
   InstallationSummary,
   SessionInfo,
   DiscoveryResult,
+  UserRole,
+  AdminOverview,
+  AdminUser,
+  AdminUserUpdate,
 } from '@shared/contracts.js';
 
 // ============================================================
@@ -65,6 +71,8 @@ export interface User {
   login: string;
   name: string | null;
   avatarUrl: string | null;
+  role: UserRole;
+  suspendedAt: string | null;
 }
 
 // Server-side session. Tokens stay encrypted until a GitHub call needs them.

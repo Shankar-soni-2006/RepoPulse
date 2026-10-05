@@ -8,7 +8,7 @@ the browser only ever talks to the frontend domain.
 |---|---|---|---|
 | Frontend (React + Vite) | Vercel project `repopulse-shankar` | `frontend` | `frontend/vercel.json` |
 | Backend API (Express) | Vercel project `repopulse-shankar-api` | `backend` | `backend/vercel.json`, `backend/api/index.js` |
-| Database | Supabase | — | `supabase/migrations/001`–`007` |
+| Database | Supabase | — | `supabase/migrations/001`–`008` |
 | Cache (optional) | Upstash Redis | — | backend env vars |
 | AI (optional) | Groq + Cerebras | — | backend env vars |
 
@@ -57,7 +57,7 @@ flowchart LR
 ## 1. Supabase
 
 1. Create a project.
-2. In the **SQL Editor**, run `supabase/migrations/001` → `007` in order. They can run
+2. In the **SQL Editor**, run `supabase/migrations/001` → `008` in order. They can run
    as one transaction: wrap them in `begin; … commit;`.
 3. Copy the **Project URL** and the **service_role / secret** key for the backend.
    Never use these in the frontend.
@@ -157,6 +157,11 @@ GitHub sign-in runs through Supabase Auth's GitHub provider, server-side
 The redirect URL is the **frontend** domain's `/api/auth/callback` (it equals
 `BACKEND_URL`), so the session cookie lands on the frontend domain.
 
+## 5c. First admin
+
+After your first sign-in, run `npm run admin:role -- <your-github-login> admin` locally
+(with production values in `backend/.env`). Your account menu then shows **Admin**.
+
 ## 6. Verify
 
 - [ ] Backend: `https://repopulse-shankar-api.vercel.app/api/health` → `status: ok`,
@@ -192,6 +197,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 
 | Task | Command (run locally with production values in `backend/.env`) |
 |---|---|
+| Make a user admin (first admin, or recovery) | `npm run admin:role -- <github-login> admin` |
 | Live end-to-end check of the deployment | `SMOKE_BASE_URL=https://repopulse-shankar.vercel.app npm run test:smoke` |
 | Sync one repository | `npm run sync:repo -- <repositoryId>` |
 | Recompute daily metrics | `npm run metrics:recalculate -- <repositoryId>` |

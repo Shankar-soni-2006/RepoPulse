@@ -325,11 +325,15 @@ export interface AIInsightResult extends AIInsightResponse {
 
 // ---- Auth / session ----
 
+/** What a user may do in RepoPulse itself. Repository data is always gated by GitHub access. */
+export type UserRole = 'admin' | 'member';
+
 export interface SessionUser {
   id: string;
   login: string;
   name: string | null;
   avatarUrl: string | null;
+  role: UserRole;
 }
 
 export interface InstallationSummary {
@@ -346,6 +350,40 @@ export interface SessionInfo {
   installations: InstallationSummary[];
   /** Where the user can install the GitHub App on more accounts; null if unavailable */
   installUrl: string | null;
+}
+
+// ---- Admin (role 'admin' only) ----
+
+export interface AdminOverview {
+  users: number;
+  admins: number;
+  suspended: number;
+  newUsers7d: number;
+  activeSessions: number;
+  repositories: number;
+  syncedRepositories: number;
+  failedSyncs: number;
+  webhookFailures24h: number;
+}
+
+export interface AdminUser {
+  id: string;
+  githubId: number;
+  login: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: UserRole;
+  /** Set when suspended: signed out everywhere and unable to sign in */
+  suspendedAt: string | null;
+  createdAt: string;
+  lastActiveAt: string | null;
+  repositoryCount: number;
+  activeSessions: number;
+}
+
+export interface AdminUserUpdate {
+  role?: UserRole;
+  suspended?: boolean;
 }
 
 export interface DiscoveryResult {

@@ -6,6 +6,7 @@ import { discoverForUser } from '../github/discoveryService.js';
 import { createAppOctokit, createUserOctokit, toGitHubError } from '../github/octokit.js';
 import { sessionService } from './sessionService.js';
 import { supabaseOAuth } from './supabaseOAuth.js';
+import { AppError } from '../../utils/errors.js';
 
 let installUrlCache: Promise<string | null> | null = null;
 
@@ -56,6 +57,9 @@ export const authService = {
       email: ghUser.email ?? null,
       avatar_url: ghUser.avatar_url,
     });
+    if (user.suspendedAt) {
+      throw new AppError('ACCOUNT_SUSPENDED', 'This RepoPulse account has been suspended', 403);
+    }
 
     const sessionToken = await sessionService.create(user.id, tokens);
 
@@ -76,7 +80,7 @@ export const authService = {
       getInstallUrl(),
     ]);
     return {
-      user: { id: user.id, login: user.login, name: user.name, avatarUrl: user.avatarUrl },
+      user: { id: user.id, login: user.login, name: user.name, avatarUrl: user.avatarUrl, role: user.role },
       installations: installations.map((i) => ({
         id: i.id,
         accountLogin: i.accountLogin,

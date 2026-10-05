@@ -9,7 +9,7 @@ import { renderPage } from '@/test/render';
 vi.mock('@/services/authService', () => ({ authService: { me: vi.fn(), login: vi.fn(), logout: vi.fn() } }));
 
 const signedInSession = {
-  user: { id: 'u', login: 'octocat', name: null, avatarUrl: null },
+  user: { id: 'u', login: 'octocat', name: null, avatarUrl: null, role: 'member' as const },
   installations: [],
   installUrl: null,
 };

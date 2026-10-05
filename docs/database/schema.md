@@ -12,7 +12,7 @@ with deny-all policies, so the anon/authenticated keys can read nothing.
 
 | Table | Purpose | Identity / uniqueness |
 |---|---|---|
-| `users` | GitHub users who signed in | `github_id` unique |
+| `users` | GitHub users who signed in; `role` (`admin` / `member`, default member) and `suspended_at` (migration 008) | `github_id` unique |
 | `sessions` | Server-side sessions. Stores a SHA-256 **hash** of the cookie token and the user's GitHub token **encrypted** | `token_hash` unique |
 | `github_installations` | GitHub App installations (user or org accounts). No tokens stored — installation tokens are minted on demand | `installation_id` unique |
 | `user_installations` | Which users can see which installations | PK `(user_id, installation_id)` |

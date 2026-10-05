@@ -17,6 +17,8 @@ declare global {
   namespace Express {
     interface Request {
       auth?: AuthContext;
+      /** Valid session of a suspended account */
+      suspended?: boolean;
     }
   }
 }
@@ -30,7 +32,10 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
   try {
     const resolved = await sessionService.resolve(token);
-    if (resolved) {
+    if (resolved?.user.suspendedAt) {
+      // Suspension also deletes sessions; this covers any created just before it
+      req.suspended = true;
+    } else if (resolved) {
       req.auth = resolved;
       // Throttled activity timestamp; failure here must not fail the request
       if (Date.now() - Date.parse(resolved.session.lastSeenAt) > TOUCH_INTERVAL_MS) {
@@ -48,7 +53,14 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
+  if (req.suspended) return next(new UnauthorizedError('This account has been suspended', 'ACCOUNT_SUSPENDED'));
   if (!req.auth) return next(new UnauthorizedError('Sign in to continue'));
+  next();
+}
+
+/** For admin-only routes. Run after requireAuth. Members get 403. */
+export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
+  if (getAuth(req).user.role !== 'admin') return next(new ForbiddenError('Admin access required', 'ADMIN_REQUIRED'));
   next();
 }
 

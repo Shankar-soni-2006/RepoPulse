@@ -12,6 +12,7 @@ import contributorsRouter from './routes/contributors.js';
 import analyticsRouter from './routes/analytics.js';
 import aiRouter from './routes/ai.js';
 import webhooksRouter from './routes/webhooks.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 
@@ -28,7 +29,7 @@ app.use(express.json());
 app.use(authenticate);
 
 // CSRF guard for cookie-authenticated mutations (webhooks authenticate by signature instead)
-app.use(['/api/auth', '/api/repositories', '/api/pull-requests', '/api/ai'], requireClientHeader);
+app.use(['/api/auth', '/api/repositories', '/api/pull-requests', '/api/ai', '/api/admin'], requireClientHeader);
 
 // ---- Routes ----
 app.use('/api/health', healthRouter);
@@ -40,6 +41,7 @@ app.use('/api/repositories/:repositoryId', analyticsRouter);
 app.use('/api/pull-requests', pullRequestDetailRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/webhooks', webhooksRouter);
+app.use('/api/admin', adminRouter);
 
 // ---- Unknown routes / error handler (must be last) ----
 app.use(notFoundMiddleware);

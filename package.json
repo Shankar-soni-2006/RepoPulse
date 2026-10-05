@@ -13,6 +13,7 @@
     "sync:repo": "npm --prefix backend run sync:repo --",
     "webhooks:relay": "npm --prefix backend run webhooks:relay",
     "metrics:recalculate": "npm --prefix backend run metrics:recalculate --",
+    "admin:role": "npm --prefix backend run admin:role --",
     "test:smoke": "npm --prefix backend run test:smoke --"
   },
   "engines": {
