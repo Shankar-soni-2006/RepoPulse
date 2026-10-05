@@ -1,8 +1,8 @@
 # RepoPulse — Project Guide
 
 A single reference for the whole repository: what RepoPulse is, its unique selling points,
-the folder structure, **what every file does**, **admin and member privileges**, the benefits
-and the known bottlenecks.
+the folder structure, **what every file does**, **admin and member privileges**, **light and
+dark mode**, the benefits and the known bottlenecks.
 
 Live: **https://repopulse-shankar.vercel.app** · Last updated 2026-10-05
 
@@ -40,6 +40,8 @@ dashboard, with AI-written explanations that are checked against the real number
    **Two roles** (admin, member) on top of GitHub's own repository access (section 6).
 6. **Live updates.** GitHub webhooks update PRs, reviews and commits without a manual sync.
 7. **Free to run.** Fits the free tiers of Vercel, Supabase, Upstash and Groq.
+8. **Light and dark mode everywhere.** One toggle on every page, follows the device by
+   default, remembered per browser; both themes checked for readable contrast (section 7).
 
 ## 3. Architecture at a glance
 
@@ -374,6 +376,7 @@ RepoPulse/
 | `docs/architecture/webhooks.md` | Webhook flow, dedupe, processing |
 | `docs/architecture/cache.md` | Cache keys, TTL, invalidation |
 | `docs/architecture/ai.md` | Providers, grounding, limits |
+| `docs/architecture/theme.md` | Light/dark mode: toggle locations, how the theme is chosen and applied, palettes, status and chart colors, contrast, checklist for new screens |
 | `docs/architecture/github-app-setup.md` | GitHub App settings, permissions, Supabase Auth setup |
 | `docs/database/schema.md` | Tables, generated columns, access model |
 | `docs/deployment.md` | Two Vercel projects, env vars, GitHub App/Supabase settings, verification, troubleshooting |
@@ -512,7 +515,22 @@ Covered by `backend/tests/auth.test.ts` (admin form), `backend/tests/admin.test.
 | Tests | `backend/tests/admin.test.ts`, `backend/tests/auth.test.ts` (admin form), `backend/tests/db.roles.test.ts`, `frontend/src/pages/AdminPage.test.tsx`, `frontend/src/pages/LoginPage.test.tsx` |
 | Docs | `docs/architecture/auth.md` (Roles), `docs/database/schema.md`, `docs/deployment.md` (First admin) |
 
-## 7. Benefits
+## 7. Light and dark mode
+
+| Topic | Summary |
+|---|---|
+| Where | Every page: home, login, repositories, Overview, Pull Requests (incl. detail drawer), Contributors, Analytics, AI Insights, Settings, Admin, mobile navigation |
+| Toggle | Sun/moon button in each page header (login: top-right corner). One switch changes the whole site |
+| Default | The device's light/dark setting, followed live until the user picks a theme |
+| Remembered | Per browser (`localStorage` key `repopulse-theme`), synced across open tabs; not tied to the account |
+| No flash | An inline script in `index.html` applies the theme before the first paint |
+| How | `hooks/useTheme.ts` puts the `dark` class on `<html>`; `index.css` swaps the CSS-variable palette; status colors use `dark:` variants; charts use `useChartColors()` |
+| Accessibility | Dark mode meets WCAG AA for all text (lowest 6.65:1). Light mode: small gray text on gray panels is 4.42:1, just under 4.5 |
+| Tests | `hooks/useTheme.test.tsx`, `pages/HomePage.test.tsx`; visual audit of every page in dark mode (2026-10-05) |
+
+Full details, palettes and a checklist for new screens: `docs/architecture/theme.md`.
+
+## 8. Benefits
 
 | For | Benefit |
 |---|---|
@@ -527,7 +545,7 @@ Covered by `backend/tests/auth.test.ts` (admin form), `backend/tests/admin.test.
 Quality evidence: **247 backend + 68 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
-## 8. Bottlenecks and limitations
+## 9. Bottlenecks and limitations
 
 | # | Bottleneck | Impact | Mitigation / next step |
 |---|---|---|---|
@@ -544,7 +562,7 @@ on production, every API endpoint checked against the shared contract.
 | 11 | **Roles are app-wide** | An admin manages every user; there are no per-team or per-organization admins | Fine for one operator; team-scoped roles would need an extra table |
 | 12 | **Tailwind 3 build-time advisory** (`braces`) | Build tooling only, never shipped to browsers | Planned: Tailwind 4 migration |
 
-## 9. Where to start reading the code
+## 10. Where to start reading the code
 
 1. `shared/contracts.d.ts` — what the API returns.
 2. `backend/src/app.ts` — how requests flow.

@@ -73,9 +73,14 @@ Two Vercel projects from this repository: `frontend/` (static app, proxies `/api
 
 Details, messages and the member/admin privilege table: `docs/project-guide.md` §6.
 
+## Light and dark mode
+
+Every page has a sun/moon toggle in its header. The site follows your device's setting until
+you choose, then remembers your choice in this browser. See `docs/architecture/theme.md`.
+
 ## Documentation
 - `docs/project-guide.md`: **start here**: USP, folder structure, what every file does, admin/member privileges and sign-in, benefits, bottlenecks
-- `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, GitHub App setup
+- `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, theme (light/dark mode), GitHub App setup
 - `docs/database/schema.md`: tables and integrity rules
 - `docs/deployment.md`: production setup and verification
 - `docs/requirements/acceptance.md`: acceptance criteria and how each is met
