@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HomePage, OWNER } from './HomePage';
+import { HomePage, OWNER, THEME_STORAGE_KEY } from './HomePage';
 import { authService } from '@/services/authService';
 import { renderPage } from '@/test/render';
 
@@ -58,5 +58,36 @@ describe('HomePage', () => {
     vi.mocked(authService.me).mockResolvedValue(signedInSession);
     renderPage(<HomePage />);
     expect(await screen.findByRole('link', { name: 'Open dashboard' })).toHaveAttribute('href', '/repositories');
+  });
+
+  describe('dark mode', () => {
+    afterEach(() => localStorage.clear());
+    const themeRoot = () => document.querySelector('[data-theme]') as HTMLElement;
+
+    it('follows the system setting when the visitor has not chosen', () => {
+      vi.mocked(authService.me).mockResolvedValue(null);
+      renderPage(<HomePage />);
+      expect(themeRoot()).toHaveAttribute('data-theme', 'light'); // test environment reports light
+      expect(themeRoot()).not.toHaveClass('dark');
+    });
+
+    it('switches theme from the header and remembers the choice', async () => {
+      vi.mocked(authService.me).mockResolvedValue(null);
+      renderPage(<HomePage />);
+      await userEvent.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+      expect(themeRoot()).toHaveClass('dark');
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+      await userEvent.click(screen.getByRole('button', { name: 'Switch to light mode' }));
+      expect(themeRoot()).not.toHaveClass('dark');
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+    });
+
+    it('restores a saved choice on the next visit', () => {
+      localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+      vi.mocked(authService.me).mockResolvedValue(null);
+      renderPage(<HomePage />);
+      expect(themeRoot()).toHaveClass('dark');
+      expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeInTheDocument();
+    });
   });
 });

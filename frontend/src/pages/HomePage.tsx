@@ -10,12 +10,15 @@ import {
   Lightbulb,
   Linkedin,
   Lock,
+  Moon,
   RefreshCw,
   ShieldCheck,
+  Sun,
   Users,
   Webhook,
 } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
+import { cn } from '@/utils/cn';
 import { authService } from '@/services/authService';
 import SplitText from '@/components/reactbits/SplitText';
 import ShinyText from '@/components/reactbits/ShinyText';
@@ -31,6 +34,47 @@ export const OWNER = {
 };
 
 const POLICY_UPDATED = 'October 5, 2026';
+
+type Theme = 'light' | 'dark';
+export const THEME_STORAGE_KEY = 'repopulse-home-theme';
+
+const prefersDark = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+function readStoredTheme(): Theme | null {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY);
+    return value === 'light' || value === 'dark' ? value : null;
+  } catch {
+    return null; // storage blocked (private mode, policies)
+  }
+}
+
+/** The visitor's choice if they made one on this device, otherwise their system setting. */
+function useHomeTheme(): [Theme, () => void] {
+  const [stored, setStored] = useState<Theme | null>(readStoredTheme);
+  const [system, setSystem] = useState<Theme>(() => (prefersDark() ? 'dark' : 'light'));
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!query) return;
+    const onChange = () => setSystem(query.matches ? 'dark' : 'light');
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  const theme = stored ?? system;
+  const toggle = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    setStored(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // the choice then lasts for this visit only
+    }
+  };
+  return [theme, toggle];
+}
 
 /** Animations only when the visitor hasn't asked for reduced motion (and the browser can tell us). */
 function useMotionAllowed(): boolean {
@@ -132,7 +176,21 @@ function PolicySection({ id, title, children }: { id: string; title: string; chi
 export function HomePage() {
   const { data: session } = useSession();
   const motion = useMotionAllowed();
+  const [theme, toggleTheme] = useHomeTheme();
+  const dark = theme === 'dark';
   const signedIn = !!session;
+
+  // Match the page behind the home page (overscroll, scrollbar) to the theme while it's shown
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = { background: root.style.backgroundColor, scheme: root.style.colorScheme };
+    root.style.backgroundColor = dark ? 'hsl(222 24% 7%)' : '';
+    root.style.colorScheme = theme;
+    return () => {
+      root.style.backgroundColor = previous.background;
+      root.style.colorScheme = previous.scheme;
+    };
+  }, [dark, theme]);
   const { hash } = useLocation();
 
   // Links like /#privacy arrive before this lazily loaded page exists; scroll once it does
@@ -159,7 +217,7 @@ export function HomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn('min-h-screen bg-background text-foreground', dark && 'dark')} data-theme={theme}>
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-12 max-w-5xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
@@ -173,6 +231,15 @@ export function HomePage() {
             <a href="#terms" className="hover:text-foreground">Terms</a>
           </nav>
           <div className="flex-1" />
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={dark ? 'Light mode' : 'Dark mode'}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {dark ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
+          </button>
           {signedIn ? (
             <Link to="/repositories" className="text-sm font-medium text-primary hover:underline">
               Dashboard
@@ -190,7 +257,13 @@ export function HomePage() {
         <section className="py-16 text-center sm:py-24">
           <div className="text-xs font-medium uppercase tracking-wider">
             {motion ? (
-              <ShinyText text="Engineering intelligence for GitHub" color="#64748b" shineColor="#2563eb" speed={3} />
+              <ShinyText
+                key={theme}
+                text="Engineering intelligence for GitHub"
+                color={dark ? '#94a3b8' : '#64748b'}
+                shineColor={dark ? '#93c5fd' : '#2563eb'}
+                speed={3}
+              />
             ) : (
               <span className="text-muted-foreground">Engineering intelligence for GitHub</span>
             )}
@@ -248,7 +321,7 @@ export function HomePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, text }, i) => (
               <Reveal key={title} motion={motion} delay={(i % 3) * 0.08}>
-                <SpotlightCard className="h-full" spotlightColor="rgba(37, 99, 235, 0.08)">
+                <SpotlightCard className="h-full" spotlightColor={dark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(37, 99, 235, 0.08)'}>
                   <Icon className="h-4 w-4 text-primary" aria-hidden />
                   <h3 className="mt-3 text-sm font-semibold">{title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
@@ -420,7 +493,7 @@ export function HomePage() {
               aria-label={`${OWNER.name} on LinkedIn`}
               className="inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-md border border-border px-3 hover:bg-accent"
             >
-              <Linkedin className="h-4 w-4 flex-shrink-0 text-[#0a66c2]" aria-hidden />
+              <Linkedin className="h-4 w-4 flex-shrink-0 text-[#0a66c2] dark:text-[#70b5f9]" aria-hidden />
               <span>LinkedIn</span>
             </a>
           </div>

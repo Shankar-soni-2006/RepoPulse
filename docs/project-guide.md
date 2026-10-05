@@ -264,20 +264,20 @@ RepoPulse/
 | `tsconfig.json` | References the two TypeScript projects below |
 | `tsconfig.app.json` | TypeScript settings for the app (`src`), `@` and `@shared` paths |
 | `tsconfig.node.json` | TypeScript settings for build tooling (`vite.config.ts`) |
-| `tailwind.config.js`, `postcss.config.js` | Design tokens (colors, radius, fonts) and CSS processing |
+| `tailwind.config.js`, `postcss.config.js` | Design tokens (colors, radius, fonts), class-based dark mode, and CSS processing |
 | `index.html` | HTML shell |
 | `.env.example` | Optional `VITE_API_BASE_URL` (normally unset) |
 | `public/favicon.svg` | Site icon |
 | `README.md` | Frontend notes |
 | `src/main.tsx` | Mounts React with the query client |
 | `src/App.tsx` | Routes; lazy-loaded pages; auth gate |
-| `src/index.css` | Tailwind layers and CSS variables |
+| `src/index.css` | Tailwind layers and the light theme's CSS variables, plus the `.dark` palette (used by the home page) |
 
 ### 5.14 `frontend/src/pages/`
 
 | File | Screen |
 |---|---|
-| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; loaded on demand |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; **light/dark mode** (follows the system setting, toggle in the header, choice remembered on the device); loaded on demand |
 | `LoginPage.tsx` | "Continue with GitHub"; explains sign-in errors; API-unreachable notice; links to the terms and privacy policy |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
@@ -338,7 +338,7 @@ RepoPulse/
 | `components/layout/RequireAuth.test.tsx` | Redirect when signed out; API-down error without leaking the page |
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
-| `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions |
+| `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
 | `utils/format.test.ts` | Duration, date and number formatting |
@@ -374,7 +374,7 @@ RepoPulse/
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **224 backend + 46 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **224 backend + 49 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 7. Bottlenecks and limitations

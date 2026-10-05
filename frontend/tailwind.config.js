@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // dark: variants apply inside an element with the "dark" class (used by the home page)
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
