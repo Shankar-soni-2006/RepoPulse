@@ -89,7 +89,11 @@ flowchart LR
    `NODEJS_HELPERS`.
 4. **Deploy.** Check that
    `https://repopulse-shankar-api.vercel.app/api/health` returns `{"success":true,…}`.
-5. Optional: **Settings → Functions → Region** near your Supabase region.
+5. **Region:** `backend/vercel.json` pins the function to `icn1` (Seoul) because this
+   Supabase project is in Seoul. Every request makes several database queries, so the
+   function must sit next to the database: in `iad1` (Vercel's default, US East) requests
+   took 0.8–1.8 s. If your Supabase project is elsewhere, change `regions` to the matching
+   Vercel region (Supabase → Settings → General shows the region).
 
 What the backend build does: `npm ci --include=dev` (TypeScript is a dev dependency, and
 `NODE_ENV=production` would otherwise skip it) → `tsc` into `dist/` → `api/index.js`
@@ -188,6 +192,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 
 | Task | Command (run locally with production values in `backend/.env`) |
 |---|---|
+| Live end-to-end check of the deployment | `SMOKE_BASE_URL=https://repopulse-shankar.vercel.app npm run test:smoke` |
 | Sync one repository | `npm run sync:repo -- <repositoryId>` |
 | Recompute daily metrics | `npm run metrics:recalculate -- <repositoryId>` |
 
@@ -208,6 +213,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 | Supabase redirects to the Site URL instead of `/api/auth/callback` | Redirect URL not allowed | Add `<frontend>/api/auth/callback` under Supabase *Redirect URLs* |
 | "Signing in with GitHub failed"; backend log shows `GITHUB_ERROR` with `githubStatus: 400` | GitHub rejected the sign-in code, usually because the callback was requested twice (slow first sign-in, double click) | Handled automatically: the backend restarts sign-in once (`rp_oauth_retry` cookie) or continues if already signed in. If it persists, check `[auth] GitHub code exchange failed: <reason>` in the logs; `incorrect_client_credentials` means `GITHUB_CLIENT_SECRET` is wrong |
 | Webhook deliveries fail with 401 | Secret mismatch | Same value in GitHub App and `GITHUB_WEBHOOK_SECRET`; Redeploy after changing |
+| Every request takes 1–2 s | Function region far from the Supabase region | Set `regions` in `backend/vercel.json` to the Vercel region nearest Supabase |
 | Sync stays *Syncing* | Function stopped at its time limit | Wait 10 minutes and sync again; the backfill continues |
 
 ## Checking a build locally

@@ -17,7 +17,8 @@ import { supabase } from '../backend/src/config/supabase.js';
 import { sessionRepository } from '../backend/src/repositories/sessionRepository.js';
 import { encryptSecret, generateToken, hashToken } from '../backend/src/utils/crypto.js';
 
-const BASE = `http://localhost:${env.PORT}`;
+// SMOKE_BASE_URL targets a deployment (e.g. https://repopulse-shankar.vercel.app); default: local backend
+const BASE = (process.env.SMOKE_BASE_URL ?? `http://localhost:${env.PORT}`).replace(/\/$/, '');
 const results: { check: string; ok: boolean; detail: string }[] = [];
 const record = (check: string, ok: boolean, detail = '') => {
   results.push({ check, ok, detail });
