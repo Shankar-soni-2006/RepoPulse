@@ -26,6 +26,7 @@ import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import AnimatedContent from '@/components/reactbits/AnimatedContent';
 import GlareHover from '@/components/reactbits/GlareHover';
 import Magnet from '@/components/reactbits/Magnet';
+import Carousel from '@/components/reactbits/Carousel';
 
 export const OWNER = {
   name: 'Shankar Soni',
@@ -168,6 +169,9 @@ export function HomePage() {
   const { data: session } = useSession();
   const motion = useMotionAllowed();
   const [theme] = useTheme(); // app-wide; only needed here for the React Bits colors
+  // Features as a slider (React Bits Carousel) or all at once; reduced motion always gets the grid
+  const [featureView, setFeatureView] = useState<'slider' | 'grid'>('slider');
+  const showSlider = motion && featureView === 'slider';
   const dark = theme === 'dark';
   const signedIn = !!session;
   const { hash } = useLocation();
@@ -285,23 +289,55 @@ export function HomePage() {
 
         {/* Features */}
         <section id="features" aria-labelledby="features-title" className="scroll-mt-16 py-16">
-          <h2 id="features-title" className="text-lg font-semibold tracking-tight">Features</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Everything below works on your real repositories today.
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, text }, i) => (
-              <Reveal key={title} motion={motion} delay={(i % 3) * 0.08}>
-                <HoverCard motion={motion} dark={dark}>
-                  <SpotlightCard className="h-full" spotlightColor={dark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(37, 99, 235, 0.08)'}>
-                    <Icon className="h-4 w-4 text-primary" aria-hidden />
-                    <h3 className="mt-3 text-sm font-semibold">{title}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
-                  </SpotlightCard>
-                </HoverCard>
-              </Reveal>
-            ))}
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="features-title" className="text-lg font-semibold tracking-tight">Features</h2>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                Everything below works on your real repositories today.
+              </p>
+            </div>
+            {motion && (
+              <button
+                type="button"
+                onClick={() => setFeatureView(showSlider ? 'grid' : 'slider')}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {showSlider ? `Show all ${FEATURES.length} features` : 'Show as slider'}
+              </button>
+            )}
           </div>
+          {showSlider ? (
+            <div className="mt-8">
+              <Carousel
+                label="Features"
+                items={FEATURES.map(({ icon: Icon, title, text }, i) => ({
+                  id: i + 1,
+                  title,
+                  description: text,
+                  icon: <Icon className="h-4 w-4" aria-hidden />,
+                }))}
+                maxWidth={560}
+                autoplay
+                autoplayDelay={4000}
+                pauseOnHover
+                loop
+              />
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map(({ icon: Icon, title, text }, i) => (
+                <Reveal key={title} motion={motion} delay={(i % 3) * 0.08}>
+                  <HoverCard motion={motion} dark={dark}>
+                    <SpotlightCard className="h-full" spotlightColor={dark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(37, 99, 235, 0.08)'}>
+                      <Icon className="h-4 w-4 text-primary" aria-hidden />
+                      <h3 className="mt-3 text-sm font-semibold">{title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                    </SpotlightCard>
+                  </HoverCard>
+                </Reveal>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* How it works */}

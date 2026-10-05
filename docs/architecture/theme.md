@@ -44,7 +44,7 @@ charts/theme.ts ────────────► chart colors per theme (
 | Palettes | `frontend/src/index.css` | Light variables on `:root`, dark variables on `.dark`, `color-scheme` so native scrollbars and form controls match |
 | Tailwind | `frontend/tailwind.config.js` | Theme colors read the CSS variables; `darkMode: 'class'` for `dark:` variants |
 | Charts | `frontend/src/components/charts/theme.ts` | `useChartColors()` returns the light or dark chart palette; used by `TrendChart`, `Sparkline`, `PeriodComparison` |
-| Home page effects | `frontend/src/pages/HomePage.tsx` | React Bits ShinyText, SpotlightCard and GlareHover colors switch with the theme (glare: faint blue `#2563eb` at 10% on light, white at 12% on dark) |
+| Home page effects | `frontend/src/pages/HomePage.tsx` | React Bits ShinyText, SpotlightCard and GlareHover colors switch with the theme; the features Carousel uses theme tokens throughout (glare: faint blue `#2563eb` at 10% on light, white at 12% on dark) |
 
 ## Palettes
 

@@ -288,7 +288,7 @@ RepoPulse/
 
 | File | Screen |
 |---|---|
-| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits (SplitText headline, ShinyText label, CountUp facts; feature and step cards with SpotlightCard, GlareHover, Magnet and scroll fade-in), static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits (SplitText headline, ShinyText label, CountUp facts; features as a **Carousel slider** (autoplay, drag, arrows, dots, keyboard) with a "Show all features" grid view; feature and step cards with SpotlightCard, GlareHover, Magnet and scroll fade-in), static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
 | `LoginPage.tsx` | **Member / Admin** sign-in forms (both GitHub; the admin form only lets admins in and lands on the Admin page); explains sign-in errors; API-unreachable notice; terms and privacy links |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
@@ -325,6 +325,7 @@ RepoPulse/
 | `reactbits/SpotlightCard.tsx` | React Bits: card with a soft cursor spotlight; styling adapted to the RepoPulse theme |
 | `reactbits/AnimatedContent.tsx` | React Bits: fade/slide-in on scroll (GSAP ScrollTrigger) |
 | `reactbits/GlareHover.tsx` | React Bits: one soft glare sweep across a card on hover; adapted to fill the card, transparent, no pointer cursor. Glare color follows the theme |
+| `reactbits/Carousel.tsx` | React Bits: feature slider with 3D slide rotation, drag, loop and autoplay (pauses on hover or keyboard focus). Adapted: fits its container, theme colors, previous/next buttons, arrow keys, slide counter, screen-reader labels, dots for any count, no demo items or `react-icons` |
 | `reactbits/Magnet.tsx` | React Bits: a card drifts a few pixels toward the pointer while it is over the card; adapted so it can fill a grid cell |
 | `ui/ThemeToggle.tsx` | Sun/moon button switching light/dark for the whole app; on the home, login, repositories and every dashboard page |
 | `ui/*` (`Badge`, `Button`, `Input`, `Pagination`, `Panel`, `SegmentedControl`, `States`, `Table`) | Small, consistent UI primitives; `States` = loading/empty/error |
@@ -358,6 +359,7 @@ RepoPulse/
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
 | `pages/AdminPage.test.tsx` | Members blocked, overview and users, no actions on yourself, promote/suspend/delete with confirmation, admins protected, refused actions explained |
 | `pages/LoginPage.test.tsx` | Member form by default, switch to the admin form (kept in the URL), not-admin message, signed-in redirects by role |
+| `components/reactbits/Carousel.test.tsx` | Labelled carousel, off-screen slides hidden from screen readers, next/previous/dots/arrow keys, current dot, no "previous" on the first slide without loop |
 | `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
@@ -544,7 +546,7 @@ Full details, palettes and a checklist for new screens: `docs/architecture/theme
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **247 backend + 68 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **247 backend + 71 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 9. Bottlenecks and limitations
