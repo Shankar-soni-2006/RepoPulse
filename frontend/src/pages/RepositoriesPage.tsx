@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Activity, ExternalLink, Globe, Lock, Building2, RefreshCw, Search } from 'lucide-react';
@@ -32,13 +32,37 @@ export function RepositoriesPage() {
   const reposQuery = useRepositories();
   const startSync = useStartSync();
 
+  // 'auto' runs silently: when the page opens and when the user comes back from GitHub
   const discover = useMutation({
-    mutationFn: repositoryService.discover,
+    mutationFn: (_trigger: 'auto' | 'manual') => repositoryService.discover(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REPOSITORIES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
     },
   });
+  const { mutate: runDiscovery } = discover;
+  const manual = discover.variables === 'manual';
+
+  // Repositories added to the GitHub App appear without a manual refresh
+  const leftForGitHub = useRef(false);
+  useEffect(() => {
+    runDiscovery('auto');
+    const onReturn = () => {
+      if (leftForGitHub.current && document.visibilityState === 'visible') {
+        leftForGitHub.current = false;
+        runDiscovery('auto');
+      }
+    };
+    window.addEventListener('focus', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
+    return () => {
+      window.removeEventListener('focus', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
+    };
+  }, [runDiscovery]);
+  const openGitHub = () => {
+    leftForGitHub.current = true;
+  };
 
   const repos = reposQuery.data;
   const filtered = useMemo(() => {
@@ -74,24 +98,16 @@ export function RepositoriesPage() {
               {session ? accountSummary(session) : 'Repositories shared with the RepoPulse GitHub App.'}
             </p>
           </div>
-          {session?.installUrl && session.installations.length > 0 && (
-            <a
-              href={session.installUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded border border-border text-sm hover:bg-accent transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Configure GitHub App
-            </a>
+          {session && session.installations.length > 0 && (
+            <ManageRepositoriesLinks session={session} onOpen={openGitHub} />
           )}
-          <Button onClick={() => discover.mutate()} loading={discover.isPending}>
+          <Button onClick={() => discover.mutate('manual')} loading={discover.isPending}>
             {!discover.isPending && <RefreshCw className="h-3.5 w-3.5" />}
             Refresh from GitHub
           </Button>
         </div>
 
-        {discover.isError && (
+        {discover.isError && manual && (
           <p role="alert" className="mb-3 text-xs text-destructive">
             Couldn’t refresh from GitHub: {discover.error.message}
           </p>
@@ -101,7 +117,7 @@ export function RepositoriesPage() {
             Couldn’t start sync: {startSync.error.message}
           </p>
         )}
-        {discover.isSuccess && (
+        {discover.isSuccess && manual && (
           <p className="mb-3 text-xs text-muted-foreground">
             Found {discover.data.repositories} repositor{discover.data.repositories === 1 ? 'y' : 'ies'} across{' '}
             {discover.data.installations} account{discover.data.installations === 1 ? '' : 's'}.
@@ -114,7 +130,7 @@ export function RepositoriesPage() {
           <ErrorState message={reposQuery.error.message} onRetry={() => reposQuery.refetch()} />
         )}
 
-        {repos && repos.length === 0 && <NoRepositories session={session ?? null} />}
+        {repos && repos.length === 0 && <NoRepositories session={session ?? null} onOpen={openGitHub} />}
 
         {repos && repos.length > 0 && (
           <div className="border border-border rounded-md">
@@ -238,8 +254,39 @@ function accountSummary(session: SessionInfo): string {
   return `GitHub App installed on ${n} account${n === 1 ? '' : 's'}: ${names}`;
 }
 
-function NoRepositories({ session }: { session: SessionInfo | null }) {
+function ManageRepositoriesLinks({ session, onOpen }: { session: SessionInfo; onOpen: () => void }) {
+  const linkClass =
+    'inline-flex items-center gap-1.5 h-8 px-3 rounded border border-border text-sm hover:bg-accent transition-colors';
+  return (
+    <>
+      {session.installations.map((i) => (
+        <a
+          key={i.id}
+          href={i.manageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onOpen}
+          className={linkClass}
+          title={`Choose which ${i.accountLogin} repositories RepoPulse can read. Pick "All repositories" so new ones are included automatically.`}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          {session.installations.length === 1 ? 'Manage repositories' : `Manage ${i.accountLogin}`}
+        </a>
+      ))}
+      {session.installUrl && (
+        <a href={session.installUrl} target="_blank" rel="noopener noreferrer" onClick={onOpen} className={linkClass}>
+          <ExternalLink className="h-3.5 w-3.5" />
+          Add account
+        </a>
+      )}
+    </>
+  );
+}
+
+function NoRepositories({ session, onOpen }: { session: SessionInfo | null; onOpen: () => void }) {
   const notInstalled = !session || session.installations.length === 0;
+  const manageUrl = session?.installations.length === 1 ? session.installations[0].manageUrl : null;
+  const href = notInstalled ? session?.installUrl : (manageUrl ?? session?.installUrl);
   return (
     <div className="border border-border rounded-md px-6 py-10 text-center">
       <h2 className="text-sm font-semibold">
@@ -247,18 +294,19 @@ function NoRepositories({ session }: { session: SessionInfo | null }) {
       </h2>
       <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
         {notInstalled
-          ? 'RepoPulse reads repositories through its GitHub App. Install it on your account or organization, choose repositories, then refresh this list.'
-          : 'The app is installed, but no repositories you can access are shared with it. Add repositories in the GitHub App settings, then refresh.'}
+          ? 'RepoPulse reads repositories through its GitHub App. Install it once on your account or organization and choose "All repositories": every current and future repository is then included. This list updates when you come back.'
+          : 'The app is installed, but no repositories you can access are shared with it. In the GitHub App settings, choose "All repositories" (or add the ones you want). This list updates when you come back.'}
       </p>
-      {session?.installUrl && (
+      {href && (
         <a
-          href={session.installUrl}
+          href={href}
+          onClick={onOpen}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center gap-1.5 h-8 px-3 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
         >
           <ExternalLink className="h-3.5 w-3.5" />
-          {notInstalled ? 'Install GitHub App' : 'Configure GitHub App'}
+          {notInstalled ? 'Install GitHub App' : 'Manage repositories'}
         </a>
       )}
     </div>

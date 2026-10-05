@@ -201,6 +201,7 @@ Backend logs: backend project → **Logs** (or a deployment's *Runtime Logs*).
 | API answers `SERVER_MISCONFIGURED` | `NODEJS_HELPERS` not `0` on the backend | Set it, then Redeploy |
 | `/api/...` on the frontend returns 404 or HTML | Rewrite destination wrong | Fix the backend domain in `frontend/vercel.json` |
 | Signed in, but immediately signed out / 401 everywhere | Cookie set for the wrong host | Use the app only via the frontend domain; `BACKEND_URL`/`FRONTEND_URL` = frontend URL |
+| Every repository has to be added to the App one by one | The installation uses *Only select repositories* | RepoPulse → **Manage repositories** → *Repository access* → **All repositories** → Save. New repositories are then included automatically |
 | Other users sign in but *Install GitHub App* shows a GitHub 404 | The App is private | App → *Advanced* → **Make public** |
 | Login page: "The sign-in service (Supabase Auth) returned an error" | Supabase provider misconfigured | Log line `[auth] Supabase code exchange failed: …`; check the provider's client ID/secret and that the App has *Email addresses: Read* |
 | GitHub: "redirect_uri is not associated with this application" (after Supabase) | App callback isn't Supabase's | App Callback URL = `https://<project-ref>.supabase.co/auth/v1/callback` |

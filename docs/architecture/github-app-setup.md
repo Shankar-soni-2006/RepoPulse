@@ -39,6 +39,16 @@ accept it (GitHub shows a banner on the installation).
 
 `Pull request`, `Pull request review`, `Push`.
 
+### Repository access: choose "All repositories"
+
+When installing the App, GitHub asks **All repositories** or **Only select repositories**.
+Choose **All repositories**: every current and future repository of that account is
+included, so nothing has to be added one by one. With "Only select repositories", each new
+repository must be added in the installation settings
+(`https://github.com/settings/installations/<id>`, or
+`https://github.com/organizations/<org>/settings/installations/<id>`). RepoPulse links there
+as **Manage repositories** and re-reads the list automatically when the user comes back.
+
 ## 2. Collect credentials into `backend/.env`
 
 | Variable | Where |

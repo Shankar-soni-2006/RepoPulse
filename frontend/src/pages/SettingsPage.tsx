@@ -88,9 +88,14 @@ export function SettingsPage() {
           </Row>
           <Row label="Accounts">{session ? session.installations.map((i) => i.accountLogin).join(', ') || 'None' : '—'}</Row>
         </dl>
-        {session?.installUrl && (
-          <a href={session.installUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">
-            Configure the GitHub App (repositories, accounts)
+        {(installation?.manageUrl ?? session?.installUrl) && (
+          <a
+            href={installation?.manageUrl ?? session?.installUrl ?? undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            Manage which repositories RepoPulse can read (choose "All repositories" to include new ones)
             <ExternalLink className="h-3 w-3" aria-hidden />
           </a>
         )}

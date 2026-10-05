@@ -336,6 +336,8 @@ export interface InstallationSummary {
   id: string;
   accountLogin: string;
   accountType: 'User' | 'Organization';
+  /** GitHub page where the account owner chooses which repositories the App can access */
+  manageUrl: string;
 }
 
 export interface SessionInfo {

@@ -9,6 +9,13 @@ import { supabaseOAuth } from './supabaseOAuth.js';
 
 let installUrlCache: Promise<string | null> | null = null;
 
+/** GitHub's settings page for one installation (repository access: all or selected) */
+export function installationManageUrl(i: { installationId: number; accountLogin: string; accountType: 'User' | 'Organization' }): string {
+  return i.accountType === 'Organization'
+    ? `https://github.com/organizations/${encodeURIComponent(i.accountLogin)}/settings/installations/${i.installationId}`
+    : `https://github.com/settings/installations/${i.installationId}`;
+}
+
 // https://github.com/apps/<slug>/installations/new — slug read from the App itself
 function getInstallUrl(): Promise<string | null> {
   installUrlCache ??= createAppOctokit()
@@ -74,6 +81,7 @@ export const authService = {
         id: i.id,
         accountLogin: i.accountLogin,
         accountType: i.accountType,
+        manageUrl: installationManageUrl(i),
       })),
       installUrl,
     };
