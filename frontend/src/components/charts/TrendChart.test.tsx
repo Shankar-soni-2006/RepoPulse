@@ -11,9 +11,10 @@ const day = (date: string, cycleTime: number | null): DailyTrend => ({
 });
 
 describe('TrendChart', () => {
-  it('says why it is empty instead of drawing a flat line', () => {
+  it('still draws the chart for an empty period and says why it is flat', () => {
     render(<TrendChart title="PR cycle time" data={[day('2026-09-01', null), day('2026-09-02', null)]} valueKey="cycleTime" kind="line" format={formatHours} emptyLabel="No PRs merged" duration />);
     expect(screen.getByText('No PRs merged in this period')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'PR cycle time: no prs merged in this period.' })).toBeInTheDocument();
   });
 
   it('offers a table view of the exact backend values, newest first, with gaps shown as —', async () => {

@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { METRICS } from '@/components/dashboard/MetricRow';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import { TrendChart } from '@/components/charts/TrendChart';
+import { PeriodComparison } from '@/components/charts/PeriodComparison';
 import { Panel } from '@/components/ui/Panel';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/Table';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States';
@@ -51,6 +52,8 @@ export function AnalyticsPage() {
       {a && (
         <>
           <DataQualityNotice quality={a.dataQuality} />
+
+          <PeriodComparison summary={a} metrics={ORDER} days={days} />
 
           <Panel title="Metrics" description="Durations are medians unless noted; review delay is the mean first-review wait" flush>
             <Table>

@@ -283,7 +283,7 @@ RepoPulse/
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
 | `PullRequestsPage.tsx` | PR table: filters, sorting, pagination, detail drawer; state in the URL |
 | `ContributorsPage.tsx` | Contributor activity table |
-| `AnalyticsPage.tsx` | Trend charts (one unit per chart) |
+| `AnalyticsPage.tsx` | "This period vs previous" bar comparison, metrics table, and 10 daily trend charts (one unit per chart) |
 | `AIInsightsPage.tsx` | Analysis modes, free question, structured insights, clear AI-unavailable/no-activity states |
 | `SettingsPage.tsx` | Sync status, GitHub connection, manage-repositories link, webhook deliveries |
 
@@ -297,7 +297,8 @@ RepoPulse/
 | `layout/AccountMenu.tsx` | Avatar menu with sign-out |
 | `dashboard/MetricRow.tsx` | Metric tiles with value, previous value and change |
 | `dashboard/DataQualityNotice.tsx` | Always-visible caveats for the numbers on screen |
-| `charts/TrendChart.tsx` | Recharts line/bar chart with accessible tooltip |
+| `charts/TrendChart.tsx` | Recharts line/bar chart with tooltip and table view; empty periods still draw axes and baseline with a note |
+| `charts/PeriodComparison.tsx` | Paired bars per metric (current vs previous period), each scaled to itself, values written beside the bars |
 | `charts/Sparkline.tsx` | Tiny inline trend (SVG, no chart library) |
 | `charts/theme.ts` | Chart colors per theme (`useChartColors`), since SVG attributes can't read CSS variables; kept separate so small charts don't load Recharts |
 | `pullRequests/PullRequestTable.tsx` | Sortable PR table |
@@ -335,7 +336,8 @@ RepoPulse/
 | File | What it covers |
 |---|---|
 | `components/ai/InsightCard.test.tsx` | Insight sections render; hypotheses labelled |
-| `components/charts/TrendChart.test.tsx` | Chart renders backend values; empty state |
+| `components/charts/TrendChart.test.tsx` | Empty periods still draw with a note; table view values |
+| `components/charts/PeriodComparison.test.tsx` | Current/previous values and change per metric, legend, collapsed empty rows |
 | `components/dashboard/MetricRow.test.tsx` | Values, previous period, change direction |
 | `components/layout/RequireAuth.test.tsx` | Redirect when signed out; API-down error without leaking the page |
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
@@ -377,7 +379,7 @@ RepoPulse/
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **224 backend + 54 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **224 backend + 57 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 7. Bottlenecks and limitations

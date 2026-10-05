@@ -110,6 +110,8 @@ export function TrendChart({
         tickLine={false}
         axisLine={false}
         allowDecimals={false}
+        // An empty period still gets a 0–1 scale, so the chart draws its baseline and grid
+        domain={[0, (dataMax: number) => (dataMax > 0 ? dataMax : 1)]}
       />
       <Tooltip
         cursor={kind === 'line' ? { stroke: colors.axisText, strokeWidth: 1 } : { fill: colors.cursorFill }}
@@ -159,12 +161,21 @@ export function TrendChart({
             </tbody>
           </table>
         </div>
-      ) : !hasValues ? (
-        <div className="flex items-center justify-center text-xs text-muted-foreground" style={{ height }}>
-          {emptyLabel} in this period
-        </div>
       ) : (
-        <div style={{ height }} role="img" aria-label={`${title} by day. Switch to Table for the values.`}>
+        <div
+          className="relative"
+          style={{ height }}
+          role="img"
+          aria-label={hasValues ? `${title} by day. Switch to Table for the values.` : `${title}: ${emptyLabel.toLowerCase()} in this period.`}
+        >
+          {!hasValues && (
+            // The chart still draws (zero baseline, axes); the note says why it's flat
+            <div className="pointer-events-none absolute inset-x-0 top-1/3 z-10 flex justify-center">
+              <span className="rounded border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
+                {emptyLabel} in this period
+              </span>
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
             {kind === 'line' ? (
               <LineChart {...common}>
