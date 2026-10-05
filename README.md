@@ -65,6 +65,7 @@ Two Vercel projects from this repository: `frontend/` (static app, proxies `/api
 `docs/deployment.md`.
 
 ## Documentation
+- `docs/project-guide.md`: **start here**: USP, folder structure, what every file does, benefits, bottlenecks
 - `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, GitHub App setup
 - `docs/database/schema.md`: tables and integrity rules
 - `docs/deployment.md`: production setup and verification
