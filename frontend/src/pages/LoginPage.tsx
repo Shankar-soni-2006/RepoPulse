@@ -3,6 +3,7 @@ import { Activity, CircleAlert, Github } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
 import { authService } from '@/services/authService';
 import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LoadingState } from '@/components/ui/States';
 
 // Codes come from the backend OAuth callback (?error=...)
@@ -32,7 +33,8 @@ export function LoginPage() {
   if (session) return <Navigate to="/repositories" replace />;
 
   return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center px-4">
+    <div className="relative min-h-screen bg-muted/40 flex items-center justify-center px-4">
+      <ThemeToggle className="absolute right-3 top-3" />
       <div className="w-full max-w-sm rounded-md border border-border bg-background">
         <div className="px-6 pt-6 pb-5 border-b border-border">
           <Link to="/" className="flex items-center gap-2 mb-4 w-fit" aria-label="RepoPulse home">
@@ -50,7 +52,7 @@ export function LoginPage() {
           {(error || (isPending && errorUpdateCount > 0)) && (
             <div
               role="alert"
-              className="flex items-start gap-2 rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800"
+              className="flex items-start gap-2 rounded border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/40 px-3 py-2 text-xs text-yellow-800 dark:text-yellow-200"
             >
               <CircleAlert className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
               <span className="flex-1">
@@ -70,7 +72,7 @@ export function LoginPage() {
           {errorCode && (
             <div
               role="alert"
-              className="flex gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+              className="flex gap-2 rounded border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-xs text-red-700 dark:text-red-300"
             >
               <CircleAlert className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
               <span>{ERROR_MESSAGES[errorCode] ?? GENERIC_ERROR}</span>

@@ -42,7 +42,7 @@ function ErrorNotice({ error, base }: { error: Error; base: string }) {
       className={
         info
           ? 'flex gap-2 rounded-md border border-border bg-muted/30 px-3 py-2.5 text-sm'
-          : 'flex gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800'
+          : 'flex gap-2 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2.5 text-sm text-red-800 dark:text-red-200'
       }
     >
       {info ? <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" aria-hidden /> : <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden />}

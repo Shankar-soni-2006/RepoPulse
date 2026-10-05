@@ -10,15 +10,14 @@ import {
   Lightbulb,
   Linkedin,
   Lock,
-  Moon,
   RefreshCw,
   ShieldCheck,
-  Sun,
   Users,
   Webhook,
 } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
-import { cn } from '@/utils/cn';
+import { useTheme } from '@/hooks/useTheme';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { authService } from '@/services/authService';
 import SplitText from '@/components/reactbits/SplitText';
 import ShinyText from '@/components/reactbits/ShinyText';
@@ -35,46 +34,6 @@ export const OWNER = {
 
 const POLICY_UPDATED = 'October 5, 2026';
 
-type Theme = 'light' | 'dark';
-export const THEME_STORAGE_KEY = 'repopulse-home-theme';
-
-const prefersDark = () =>
-  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-
-function readStoredTheme(): Theme | null {
-  try {
-    const value = localStorage.getItem(THEME_STORAGE_KEY);
-    return value === 'light' || value === 'dark' ? value : null;
-  } catch {
-    return null; // storage blocked (private mode, policies)
-  }
-}
-
-/** The visitor's choice if they made one on this device, otherwise their system setting. */
-function useHomeTheme(): [Theme, () => void] {
-  const [stored, setStored] = useState<Theme | null>(readStoredTheme);
-  const [system, setSystem] = useState<Theme>(() => (prefersDark() ? 'dark' : 'light'));
-
-  useEffect(() => {
-    const query = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!query) return;
-    const onChange = () => setSystem(query.matches ? 'dark' : 'light');
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-
-  const theme = stored ?? system;
-  const toggle = () => {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    setStored(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // the choice then lasts for this visit only
-    }
-  };
-  return [theme, toggle];
-}
 
 /** Animations only when the visitor hasn't asked for reduced motion (and the browser can tell us). */
 function useMotionAllowed(): boolean {
@@ -176,21 +135,9 @@ function PolicySection({ id, title, children }: { id: string; title: string; chi
 export function HomePage() {
   const { data: session } = useSession();
   const motion = useMotionAllowed();
-  const [theme, toggleTheme] = useHomeTheme();
+  const [theme] = useTheme(); // app-wide; only needed here for the React Bits colors
   const dark = theme === 'dark';
   const signedIn = !!session;
-
-  // Match the page behind the home page (overscroll, scrollbar) to the theme while it's shown
-  useEffect(() => {
-    const root = document.documentElement;
-    const previous = { background: root.style.backgroundColor, scheme: root.style.colorScheme };
-    root.style.backgroundColor = dark ? 'hsl(222 24% 7%)' : '';
-    root.style.colorScheme = theme;
-    return () => {
-      root.style.backgroundColor = previous.background;
-      root.style.colorScheme = previous.scheme;
-    };
-  }, [dark, theme]);
   const { hash } = useLocation();
 
   // Links like /#privacy arrive before this lazily loaded page exists; scroll once it does
@@ -217,7 +164,7 @@ export function HomePage() {
   );
 
   return (
-    <div className={cn('min-h-screen bg-background text-foreground', dark && 'dark')} data-theme={theme}>
+    <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-12 max-w-5xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
@@ -231,15 +178,7 @@ export function HomePage() {
             <a href="#terms" className="hover:text-foreground">Terms</a>
           </nav>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={dark ? 'Light mode' : 'Dark mode'}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            {dark ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
-          </button>
+          <ThemeToggle />
           {signedIn ? (
             <Link to="/repositories" className="text-sm font-medium text-primary hover:underline">
               Dashboard

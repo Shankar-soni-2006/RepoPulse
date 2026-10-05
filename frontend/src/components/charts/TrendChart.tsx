@@ -12,7 +12,7 @@ import {
   type TooltipContentProps,
 } from 'recharts';
 import type { DailyTrend } from '@/types';
-import { AXIS_TEXT_COLOR, GRID_COLOR, SERIES_COLOR } from './theme';
+import { useChartColors } from './theme';
 import { Panel } from '@/components/ui/Panel';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { formatDay } from '@/utils/format';
@@ -20,9 +20,6 @@ import { formatDay } from '@/utils/format';
 // Single-series trend over UTC days. Values come from the backend's daily rollups;
 // the chart only displays them. Spec: 2px line / ≤24px bars with 4px rounded tops,
 // hairline solid grid, crosshair tooltip, and a table view of the same numbers.
-
-const GRID = GRID_COLOR;
-const AXIS_TEXT = AXIS_TEXT_COLOR;
 
 type NumericKey = {
   [K in keyof DailyTrend]: DailyTrend[K] extends number | null ? K : never;
@@ -77,6 +74,7 @@ export function TrendChart({
   duration,
 }: TrendChartProps) {
   const [view, setView] = useState<'chart' | 'table'>('chart');
+  const colors = useChartColors();
   const hasValues = data.some((d) => d[valueKey] !== null && d[valueKey] !== 0);
 
   // Plot durations in a single unit so axis ticks are comparable and round
@@ -95,26 +93,26 @@ export function TrendChart({
   };
   const axes = (
     <>
-      <CartesianGrid vertical={false} stroke={GRID} strokeWidth={1} />
+      <CartesianGrid vertical={false} stroke={colors.grid} strokeWidth={1} />
       <XAxis
         dataKey="date"
         tickFormatter={formatDay}
         interval={tickInterval}
-        tick={{ fontSize: 11, fill: AXIS_TEXT }}
+        tick={{ fontSize: 11, fill: colors.axisText }}
         tickLine={false}
-        axisLine={{ stroke: GRID }}
+        axisLine={{ stroke: colors.grid }}
         minTickGap={8}
       />
       <YAxis
         width={48}
         tickFormatter={axisFormat}
-        tick={{ fontSize: 11, fill: AXIS_TEXT }}
+        tick={{ fontSize: 11, fill: colors.axisText }}
         tickLine={false}
         axisLine={false}
         allowDecimals={false}
       />
       <Tooltip
-        cursor={kind === 'line' ? { stroke: AXIS_TEXT, strokeWidth: 1 } : { fill: 'hsl(220 14% 96%)' }}
+        cursor={kind === 'line' ? { stroke: colors.axisText, strokeWidth: 1 } : { fill: colors.cursorFill }}
         // Tooltip shows the precise backend value, not the axis-unit conversion
         content={(props) => {
           const p = props as TooltipContentProps<number, string>;
@@ -175,21 +173,21 @@ export function TrendChart({
                   // Straight segments: curves would imply values between measured days
                   type="linear"
                   dataKey="__v"
-                  stroke={SERIES_COLOR}
+                  stroke={colors.series}
                   strokeWidth={2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   // Days without a value stay gaps: no invented interpolation
                   connectNulls={false}
-                  dot={data.length <= 31 ? { r: 3, fill: SERIES_COLOR, stroke: '#fff', strokeWidth: 2 } : false}
-                  activeDot={{ r: 4, fill: SERIES_COLOR, stroke: '#fff', strokeWidth: 2 }}
+                  dot={data.length <= 31 ? { r: 3, fill: colors.series, stroke: colors.pointRing, strokeWidth: 2 } : false}
+                  activeDot={{ r: 4, fill: colors.series, stroke: colors.pointRing, strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               </LineChart>
             ) : (
               <BarChart {...common} barCategoryGap={2}>
                 {axes}
-                <Bar dataKey="__v" fill={SERIES_COLOR} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+                <Bar dataKey="__v" fill={colors.series} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
               </BarChart>
             )}
           </ResponsiveContainer>

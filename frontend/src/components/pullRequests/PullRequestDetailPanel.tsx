@@ -85,8 +85,8 @@ export function PullRequestDetailPanel({
                 <Field label="Cycle time">{formatHours(pr.cycleTime)}</Field>
                 <Field label="First review">{formatHours(pr.firstReviewTime)}</Field>
                 <Field label="Lines">
-                  <span className="text-emerald-700">+{formatCount(pr.additions)}</span>{' '}
-                  <span className="text-red-700">−{formatCount(pr.deletions)}</span>
+                  <span className="text-emerald-700 dark:text-emerald-400">+{formatCount(pr.additions)}</span>{' '}
+                  <span className="text-red-700 dark:text-red-300">−{formatCount(pr.deletions)}</span>
                 </Field>
                 <Field label="Changed files">{formatCount(pr.changedFiles)}</Field>
                 <Field label="Reviews">{pr.reviewCount}</Field>

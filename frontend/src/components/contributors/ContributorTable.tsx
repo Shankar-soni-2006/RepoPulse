@@ -35,8 +35,8 @@ export function ContributorTable({ contributors, compact }: { contributors: Cont
             <Td className="text-right tabular-nums">{formatCount(c.prsOpened)}</Td>
             <Td className="text-right tabular-nums hidden sm:table-cell">{formatCount(c.prsMerged)}</Td>
             <Td className="text-right tabular-nums">{formatCount(c.reviews)}</Td>
-            <Td className="text-right tabular-nums hidden md:table-cell text-emerald-700">+{formatCount(c.additions)}</Td>
-            <Td className="text-right tabular-nums hidden md:table-cell text-red-700">−{formatCount(c.deletions)}</Td>
+            <Td className="text-right tabular-nums hidden md:table-cell text-emerald-700 dark:text-emerald-400">+{formatCount(c.additions)}</Td>
+            <Td className="text-right tabular-nums hidden md:table-cell text-red-700 dark:text-red-300">−{formatCount(c.deletions)}</Td>
             {!compact && (
               <Td className="hidden lg:table-cell">
                 <Sparkline values={c.weeklyActivity} label={`${c.login} weekly commits, PRs and reviews`} />

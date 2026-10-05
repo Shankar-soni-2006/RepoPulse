@@ -265,19 +265,19 @@ RepoPulse/
 | `tsconfig.app.json` | TypeScript settings for the app (`src`), `@` and `@shared` paths |
 | `tsconfig.node.json` | TypeScript settings for build tooling (`vite.config.ts`) |
 | `tailwind.config.js`, `postcss.config.js` | Design tokens (colors, radius, fonts), class-based dark mode, and CSS processing |
-| `index.html` | HTML shell |
+| `index.html` | HTML shell; a tiny inline script applies the saved/system theme before the first paint (no flash) |
 | `.env.example` | Optional `VITE_API_BASE_URL` (normally unset) |
 | `public/favicon.svg` | Site icon |
 | `README.md` | Frontend notes |
 | `src/main.tsx` | Mounts React with the query client |
 | `src/App.tsx` | Routes; lazy-loaded pages; auth gate |
-| `src/index.css` | Tailwind layers and the light theme's CSS variables, plus the `.dark` palette (used by the home page) |
+| `src/index.css` | Tailwind layers and the theme's CSS variables: light by default, `.dark` palette when `<html>` has the `dark` class |
 
 ### 5.14 `frontend/src/pages/`
 
 | File | Screen |
 |---|---|
-| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; **light/dark mode** (follows the system setting, toggle in the header, choice remembered on the device); loaded on demand |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
 | `LoginPage.tsx` | "Continue with GitHub"; explains sign-in errors; API-unreachable notice; links to the terms and privacy policy |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
@@ -299,7 +299,7 @@ RepoPulse/
 | `dashboard/DataQualityNotice.tsx` | Always-visible caveats for the numbers on screen |
 | `charts/TrendChart.tsx` | Recharts line/bar chart with accessible tooltip |
 | `charts/Sparkline.tsx` | Tiny inline trend (SVG, no chart library) |
-| `charts/theme.ts` | Shared chart colors (kept separate so small charts don't load Recharts) |
+| `charts/theme.ts` | Chart colors per theme (`useChartColors`), since SVG attributes can't read CSS variables; kept separate so small charts don't load Recharts |
 | `pullRequests/PullRequestTable.tsx` | Sortable PR table |
 | `pullRequests/PullRequestDetailPanel.tsx` | PR detail drawer (timeline, size, reviews) |
 | `pullRequests/PullRequestStatusBadge.tsx` | Open/merged/closed badge |
@@ -311,6 +311,7 @@ RepoPulse/
 | `reactbits/CountUp.tsx` | React Bits: numbers count up when scrolled into view (Motion) |
 | `reactbits/SpotlightCard.tsx` | React Bits: card with a soft cursor spotlight; styling adapted to the RepoPulse theme |
 | `reactbits/AnimatedContent.tsx` | React Bits: fade/slide-in on scroll (GSAP ScrollTrigger) |
+| `ui/ThemeToggle.tsx` | Sun/moon button switching light/dark for the whole app; on the home, login, repositories and every dashboard page |
 | `ui/*` (`Badge`, `Button`, `Input`, `Pagination`, `Panel`, `SegmentedControl`, `States`, `Table`) | Small, consistent UI primitives; `States` = loading/empty/error |
 
 ### 5.16 `frontend/src/hooks/`, `services/`, `types/`, `utils/`, `test/`
@@ -320,6 +321,7 @@ RepoPulse/
 | `hooks/useSession.ts` | Current user/session query |
 | `hooks/useRepository.ts` | Repository list/detail, start sync, polling while syncing |
 | `hooks/useAnalytics.ts` | Analytics, PRs, contributors queries keyed by repository and period |
+| `hooks/useTheme.ts` | **App-wide light/dark theme**: system setting by default, saved choice (localStorage), synced across toggles and tabs, applied as the `dark` class on `<html>` |
 | `hooks/usePeriod.ts` | `?days=7|30|90` kept in the URL so views are shareable |
 | `services/api.ts` | Fetch wrapper: relative `/api`, credentials, CSRF header, envelope → typed result or `ApiRequestError` |
 | `services/{auth,repository,analytics,pullRequest,contributor,ai,system}Service.ts` | Typed calls for each backend area |
@@ -342,6 +344,7 @@ RepoPulse/
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
 | `utils/format.test.ts` | Duration, date and number formatting |
+| `hooks/useTheme.test.tsx` | System default, legacy setting kept, whole-document switch, toggles in sync, start-up restore, chart palette per theme |
 
 ### 5.18 `scripts/` and `docs/`
 
@@ -374,7 +377,7 @@ RepoPulse/
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **224 backend + 49 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **224 backend + 54 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 7. Bottlenecks and limitations

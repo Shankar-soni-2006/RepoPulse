@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HomePage, OWNER, THEME_STORAGE_KEY } from './HomePage';
+import { HomePage, OWNER } from './HomePage';
+import { THEME_STORAGE_KEY, applyTheme } from '@/hooks/useTheme';
 import { authService } from '@/services/authService';
 import { renderPage } from '@/test/render';
 
@@ -62,13 +63,13 @@ describe('HomePage', () => {
 
   describe('dark mode', () => {
     afterEach(() => localStorage.clear());
-    const themeRoot = () => document.querySelector('[data-theme]') as HTMLElement;
+    const themeRoot = () => document.documentElement;
 
     it('follows the system setting when the visitor has not chosen', () => {
       vi.mocked(authService.me).mockResolvedValue(null);
       renderPage(<HomePage />);
-      expect(themeRoot()).toHaveAttribute('data-theme', 'light'); // test environment reports light
-      expect(themeRoot()).not.toHaveClass('dark');
+      expect(themeRoot()).not.toHaveClass('dark'); // test environment reports a light system theme
+      expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toBeInTheDocument();
     });
 
     it('switches theme from the header and remembers the choice', async () => {
@@ -84,6 +85,7 @@ describe('HomePage', () => {
 
     it('restores a saved choice on the next visit', () => {
       localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+      applyTheme(); // what main.tsx / index.html do at start-up
       vi.mocked(authService.me).mockResolvedValue(null);
       renderPage(<HomePage />);
       expect(themeRoot()).toHaveClass('dark');

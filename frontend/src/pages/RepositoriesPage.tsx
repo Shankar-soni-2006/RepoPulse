@@ -6,6 +6,7 @@ import { repositoryService } from '@/services/repositoryService';
 import { useSession, SESSION_QUERY_KEY } from '@/hooks/useSession';
 import { REPOSITORIES_QUERY_KEY, useRepositories, useStartSync } from '@/hooks/useRepository';
 import { AccountMenu } from '@/components/layout/AccountMenu';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SyncStatusBadge } from '@/components/repositories/SyncStatusBadge';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States';
@@ -83,6 +84,7 @@ export function RepositoriesPage() {
         <span className="text-sm font-semibold tracking-tight whitespace-nowrap">RepoPulse</span>
         <span className="text-muted-foreground text-sm whitespace-nowrap hidden sm:inline">/ Repositories</span>
         <div className="flex-1" />
+        <ThemeToggle />
         {session && (
           <div className="w-36 sm:w-44 min-w-0">
             <AccountMenu user={session.user} />

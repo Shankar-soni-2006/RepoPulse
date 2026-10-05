@@ -45,8 +45,8 @@ function Delta({ change, direction, days }: { change: number | null; direction: 
       className={cn(
         'inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums',
         good === null && 'text-muted-foreground',
-        good === true && 'text-emerald-700',
-        good === false && 'text-red-700',
+        good === true && 'text-emerald-700 dark:text-emerald-400',
+        good === false && 'text-red-700 dark:text-red-300',
       )}
       title={`${formatChange(change)} vs previous ${days} days${good === null ? '' : good ? ' (improved)' : ' (worse)'}`}
     >

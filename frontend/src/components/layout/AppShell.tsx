@@ -24,6 +24,7 @@ import { formatRelative } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { ApiRequestError } from '@/services/api';
 import type { Repository } from '@/types';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const NAV_ITEMS = [
   { label: 'Overview', path: 'overview', icon: LayoutDashboard },
@@ -167,8 +168,12 @@ export function AppShell() {
               </a>
             </>
           ) : (
-            <span className="text-sm text-muted-foreground">{repoError ? 'Repository unavailable' : 'Loading repository…'}</span>
+            <>
+              <span className="text-sm text-muted-foreground">{repoError ? 'Repository unavailable' : 'Loading repository…'}</span>
+              <div className="flex-1" />
+            </>
           )}
+          <ThemeToggle className="-mr-1" />
         </header>
 
         <main className="flex-1 overflow-y-auto">

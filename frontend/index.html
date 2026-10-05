@@ -11,6 +11,15 @@
       rel="stylesheet"
     />
     <title>RepoPulse</title>
+    <script>
+      // Apply the saved or system theme before the first paint (same rule as src/hooks/useTheme.ts)
+      try {
+        var t = localStorage.getItem('repopulse-theme') || localStorage.getItem('repopulse-home-theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (t === 'dark') document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

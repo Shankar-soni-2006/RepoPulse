@@ -7,9 +7,9 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
   default: 'bg-primary/10 text-primary',
-  success: 'bg-green-50 text-green-700 border-green-200',
-  warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  danger: 'bg-red-50 text-red-700 border-red-200',
+  success: 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900',
+  warning: 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-900',
+  danger: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900',
   muted: 'bg-muted text-muted-foreground',
 };
 
