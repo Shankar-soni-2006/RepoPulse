@@ -68,9 +68,20 @@ it, so RepoPulse keeps its own session (below) and stores the tokens itself. Sup
   `npm run admin:role -- <github-login> admin` (the user must have signed in once);
   afterwards admins change roles on the Admin page.
 - **Login forms:** the login page has a **Member** and an **Admin** form, both GitHub sign-in.
-  The Admin form (`/api/auth/github?as=admin`, remembered in the `rp_login_as` cookie)
-  refuses accounts without the admin role **before** a session is created (`NOT_ADMIN`) and
-  sends admins to `/admin`. Picking a form never grants a role.
+  Picking a form never grants a role.
+
+  | Step | Member form (`/login`) | Admin form (`/login?as=admin`) |
+  |---|---|---|
+  | 1. Start | `GET /api/auth/github` (clears `rp_login_as`) | `GET /api/auth/github?as=admin` sets `rp_login_as=admin` (HttpOnly, SameSite=Lax, 10 min) |
+  | 2. Supabase → GitHub → callback | same PKCE flow (`rp_oauth_flow`) | same; `rp_login_as` is read and cleared at the callback |
+  | 3. Code exchange, profile, user upsert | same | same |
+  | 4. Checks before a session exists | suspended → `ACCOUNT_SUSPENDED` | suspended → `ACCOUNT_SUSPENDED`; **role ≠ admin → `NOT_ADMIN`** |
+  | 5. Success | session cookie → `/repositories` | session cookie → `/admin` |
+  | Failure | `/login?error=<code>` | `/login?error=<code>&as=admin` (back on the Admin form) |
+
+  A restart after a reused code keeps the form (`/api/auth/github?as=admin`). Signed-in
+  visitors opening `/login` are redirected: admins on the Admin form to `/admin`, everyone
+  else to `/repositories`. User-facing steps and messages: `docs/project-guide.md` §6.4.
 - **Suspension** (`users.suspended_at`) deletes the user's sessions and blocks sign-in
   (`ACCOUNT_SUSPENDED`). A session that slips through is refused on its next request.
 - **Delete** removes the user, their sessions and access grants; repository activity shared

@@ -441,7 +441,64 @@ RepoPulse has **two layers of access**, and both apply to every request:
 - **Choosing a form doesn't change your role.** The Admin form only checks it.
 - Signing in again never changes a role or a suspension; only admins (or the command) do.
 
-### 6.4 Where it is implemented
+### 6.4 How to sign in: member and admin
+
+The login page (`/login`) has two forms, switched with **Member | Admin** at the top. Both
+sign in with GitHub; RepoPulse has no passwords. The chosen form is part of the address,
+so it can be bookmarked or shared.
+
+| | **Member** form | **Admin** form |
+|---|---|---|
+| Address | `https://repopulse-shankar.vercel.app/login` | `https://repopulse-shankar.vercel.app/login?as=admin` |
+| For | Everyone | Accounts that already have the **admin** role |
+| Button | **Continue with GitHub** | **Sign in as admin with GitHub** |
+| After GitHub approval | Signed in → **Repositories** | Admin → signed in → **Admin** page. Member → **refused, not signed in**, back on the Admin form |
+| Can it grant admin? | — | **No.** It only checks the existing role |
+
+**Member: step by step**
+
+1. Open `/login` (the **Member** form is selected).
+2. Click **Continue with GitHub** and approve RepoPulse on GitHub (first time only).
+3. On **Repositories**: if you see *Install the GitHub App to get started*, click
+   **Install GitHub App**, choose your account and **All repositories**, then come back;
+   the list refreshes by itself.
+4. Click **Sync** on a repository, then open it for Overview, Pull Requests,
+   Contributors, Analytics and AI Insights.
+
+**Admin: step by step**
+
+1. Open `/login?as=admin` (or `/login` and click **Admin**).
+2. Click **Sign in as admin with GitHub** and approve on GitHub if asked.
+3. You land on the **Admin** page: system overview and users. Repositories and dashboards
+   work exactly as for members (account menu → back to the app).
+4. Already signed in through the Member form? Open the account menu → **Admin**; no
+   second sign-in is needed.
+
+**What each message means**
+
+| Message on the login page | Why | What to do |
+|---|---|---|
+| *This GitHub account isn’t a RepoPulse admin…* | A member used the Admin form | Use the **Member** form, or ask an admin to change your role |
+| *This account has been suspended…* | An admin suspended the account | Contact a RepoPulse admin |
+| *GitHub authorization was cancelled.* | **Cancel** was clicked on GitHub | Try again and approve |
+| *The sign-in attempt expired or was started in another tab.* | More than 10 minutes, or another tab | Start again from the same tab |
+| *The GitHub sign-in link was already used or has expired.* | The GitHub return link was opened twice | Click the sign-in button again |
+| *Can’t reach the RepoPulse API.* | The backend is down or starting | Wait a moment and click **Retry** |
+
+**Why a member can never get in as admin**
+
+| Attempt | Result | Enforced by |
+|---|---|---|
+| Use the **Admin** form | Refused **before any session is created**; not signed in (`NOT_ADMIN`) | `authService.completeLogin(..., { requireAdmin })` |
+| Sign in as member, then open `/admin` | "Admin access required"; no admin data loaded | `AdminPage` + API below |
+| Call `/api/admin/*` directly | **403 `ADMIN_REQUIRED`**; nothing read or changed | `requireAdmin` middleware |
+| Edit the URL, cookies or browser storage | No effect: the role is read from the database on every request | `authenticate` middleware |
+| An admin is changed back to member | Loses admin access on their next request, without signing out | role re-read per request |
+
+Covered by `backend/tests/auth.test.ts` (admin form), `backend/tests/admin.test.ts`,
+`frontend/src/pages/LoginPage.test.tsx` and `frontend/src/pages/AdminPage.test.tsx`.
+
+### 6.5 Where it is implemented
 
 | Layer | Files |
 |---|---|

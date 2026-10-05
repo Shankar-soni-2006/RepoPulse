@@ -64,8 +64,17 @@ Two Vercel projects from this repository: `frontend/` (static app, proxies `/api
 `backend/` (Express API as a serverless function), plus Supabase and Upstash. See
 `docs/deployment.md`.
 
+## Signing in
+
+- **Members:** open `/login` → **Continue with GitHub**.
+- **Admins:** open `/login?as=admin` → **Sign in as admin with GitHub** (only accounts with
+  the admin role get in; members are refused). Make the first admin with
+  `npm run admin:role -- <github-login> admin`.
+
+Details, messages and the member/admin privilege table: `docs/project-guide.md` §6.
+
 ## Documentation
-- `docs/project-guide.md`: **start here**: USP, folder structure, what every file does, benefits, bottlenecks
+- `docs/project-guide.md`: **start here**: USP, folder structure, what every file does, admin/member privileges and sign-in, benefits, bottlenecks
 - `docs/architecture/`: auth, sync, analytics, webhooks, cache, AI, GitHub App setup
 - `docs/database/schema.md`: tables and integrity rules
 - `docs/deployment.md`: production setup and verification

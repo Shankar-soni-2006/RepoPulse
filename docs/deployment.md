@@ -167,7 +167,9 @@ After your first sign-in, run `npm run admin:role -- <your-github-login> admin` 
 - [ ] Backend: `https://repopulse-shankar-api.vercel.app/api/health` → `status: ok`,
       `cache: ok` if Redis is configured.
 - [ ] Frontend proxy: `https://repopulse-shankar.vercel.app/api/health` → the same JSON.
-- [ ] **Continue with GitHub** signs in and lands on Repositories.
+- [ ] **Member form:** *Continue with GitHub* signs in and lands on Repositories.
+- [ ] **Admin form** (`/login?as=admin`): your admin account lands on the Admin page; a
+      member account is refused with *isn’t a RepoPulse admin* and is not signed in.
 - [ ] A second GitHub account can sign in, install the App on its own account and see
       only its own repositories.
 - [ ] **Sync** on a repository finishes with status *Synced*.
