@@ -288,7 +288,7 @@ RepoPulse/
 
 | File | Screen |
 |---|---|
-| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits (SplitText headline, ShinyText label, CountUp facts; feature and step cards with SpotlightCard, GlareHover, Magnet and scroll fade-in), static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
 | `LoginPage.tsx` | **Member / Admin** sign-in forms (both GitHub; the admin form only lets admins in and lands on the Admin page); explains sign-in errors; API-unreachable notice; terms and privacy links |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
@@ -324,6 +324,8 @@ RepoPulse/
 | `reactbits/CountUp.tsx` | React Bits: numbers count up when scrolled into view (Motion) |
 | `reactbits/SpotlightCard.tsx` | React Bits: card with a soft cursor spotlight; styling adapted to the RepoPulse theme |
 | `reactbits/AnimatedContent.tsx` | React Bits: fade/slide-in on scroll (GSAP ScrollTrigger) |
+| `reactbits/GlareHover.tsx` | React Bits: one soft glare sweep across a card on hover; adapted to fill the card, transparent, no pointer cursor. Glare color follows the theme |
+| `reactbits/Magnet.tsx` | React Bits: a card drifts a few pixels toward the pointer while it is over the card; adapted so it can fill a grid cell |
 | `ui/ThemeToggle.tsx` | Sun/moon button switching light/dark for the whole app; on the home, login, repositories and every dashboard page |
 | `ui/*` (`Badge`, `Button`, `Input`, `Pagination`, `Panel`, `SegmentedControl`, `States`, `Table`) | Small, consistent UI primitives; `States` = loading/empty/error |
 

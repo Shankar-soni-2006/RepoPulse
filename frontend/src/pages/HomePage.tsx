@@ -24,6 +24,8 @@ import ShinyText from '@/components/reactbits/ShinyText';
 import CountUp from '@/components/reactbits/CountUp';
 import SpotlightCard from '@/components/reactbits/SpotlightCard';
 import AnimatedContent from '@/components/reactbits/AnimatedContent';
+import GlareHover from '@/components/reactbits/GlareHover';
+import Magnet from '@/components/reactbits/Magnet';
 
 export const OWNER = {
   name: 'Shankar Soni',
@@ -110,11 +112,41 @@ const FACTS = [
 ];
 
 function Reveal({ children, motion, delay = 0 }: { children: ReactNode; motion: boolean; delay?: number }) {
-  if (!motion) return <div>{children}</div>;
+  if (!motion) return <div className="h-full">{children}</div>;
   return (
-    <AnimatedContent distance={24} duration={0.6} delay={delay} threshold={0.15}>
+    <AnimatedContent distance={24} duration={0.6} delay={delay} threshold={0.15} className="h-full">
       {children}
     </AnimatedContent>
+  );
+}
+
+/**
+ * React Bits hover effects for cards, kept subtle to match the product: a few pixels of
+ * magnetic pull toward the pointer (only while it is over the card) and a single soft
+ * glare sweep. Glare color follows the theme. Off when reduced motion is preferred.
+ */
+function HoverCard({ children, motion, dark }: { children: ReactNode; motion: boolean; dark: boolean }) {
+  if (!motion) return <>{children}</>;
+  return (
+    <Magnet
+      padding={0}
+      magnetStrength={30}
+      activeTransition="transform 0.25s ease-out"
+      inactiveTransition="transform 0.45s ease-in-out"
+      wrapperClassName="h-full"
+      innerClassName="h-full"
+    >
+      <GlareHover
+        glareColor={dark ? '#ffffff' : '#2563eb'}
+        glareOpacity={dark ? 0.12 : 0.1}
+        glareAngle={-35}
+        glareSize={220}
+        transitionDuration={700}
+        playOnce
+      >
+        {children}
+      </GlareHover>
+    </Magnet>
   );
 }
 
@@ -260,11 +292,13 @@ export function HomePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, text }, i) => (
               <Reveal key={title} motion={motion} delay={(i % 3) * 0.08}>
-                <SpotlightCard className="h-full" spotlightColor={dark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(37, 99, 235, 0.08)'}>
-                  <Icon className="h-4 w-4 text-primary" aria-hidden />
-                  <h3 className="mt-3 text-sm font-semibold">{title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
-                </SpotlightCard>
+                <HoverCard motion={motion} dark={dark}>
+                  <SpotlightCard className="h-full" spotlightColor={dark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(37, 99, 235, 0.08)'}>
+                    <Icon className="h-4 w-4 text-primary" aria-hidden />
+                    <h3 className="mt-3 text-sm font-semibold">{title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                  </SpotlightCard>
+                </HoverCard>
               </Reveal>
             ))}
           </div>
@@ -277,11 +311,13 @@ export function HomePage() {
             {STEPS.map((s, i) => (
               <li key={s.title}>
                 <Reveal motion={motion} delay={i * 0.1}>
-                  <div className="rounded-lg border border-border p-5">
-                    <div className="text-xs font-medium text-primary">Step {i + 1}</div>
-                    <h3 className="mt-2 text-sm font-semibold">{s.title}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
-                  </div>
+                  <HoverCard motion={motion} dark={dark}>
+                    <div className="h-full rounded-lg border border-border p-5">
+                      <div className="text-xs font-medium text-primary">Step {i + 1}</div>
+                      <h3 className="mt-2 text-sm font-semibold">{s.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                    </div>
+                  </HoverCard>
                 </Reveal>
               </li>
             ))}
