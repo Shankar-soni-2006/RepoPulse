@@ -277,7 +277,8 @@ RepoPulse/
 
 | File | Screen |
 |---|---|
-| `LoginPage.tsx` | "Continue with GitHub"; explains sign-in errors; API-unreachable notice |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits animations, static when the visitor prefers reduced motion; loaded on demand |
+| `LoginPage.tsx` | "Continue with GitHub"; explains sign-in errors; API-unreachable notice; links to the terms and privacy policy |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
 | `PullRequestsPage.tsx` | PR table: filters, sorting, pagination, detail drawer; state in the URL |
@@ -305,6 +306,11 @@ RepoPulse/
 | `contributors/ContributorTable.tsx` | Contributor activity rows |
 | `repositories/SyncStatusBadge.tsx` | Never/syncing/synced/failed badge |
 | `ai/InsightCard.tsx` | One AI insight: fact, evidence, possible explanation, what to check |
+| `reactbits/SplitText.tsx` | React Bits (MIT): word-by-word headline animation (GSAP) |
+| `reactbits/ShinyText.tsx` | React Bits: shine sweep over a short label (Motion) |
+| `reactbits/CountUp.tsx` | React Bits: numbers count up when scrolled into view (Motion) |
+| `reactbits/SpotlightCard.tsx` | React Bits: card with a soft cursor spotlight; styling adapted to the RepoPulse theme |
+| `reactbits/AnimatedContent.tsx` | React Bits: fade/slide-in on scroll (GSAP ScrollTrigger) |
 | `ui/*` (`Badge`, `Button`, `Input`, `Pagination`, `Panel`, `SegmentedControl`, `States`, `Table`) | Small, consistent UI primitives; `States` = loading/empty/error |
 
 ### 5.16 `frontend/src/hooks/`, `services/`, `types/`, `utils/`, `test/`
@@ -320,7 +326,7 @@ RepoPulse/
 | `types/index.ts` | Re-exports the shared contract types |
 | `utils/format.ts` | Duration, date, number and percentage formatting |
 | `utils/cn.ts` | Class-name merge helper |
-| `test/setup.ts`, `test/render.tsx` | Test environment and a router/query render helper |
+| `test/setup.ts`, `test/render.tsx` | Test environment (incl. a `matchMedia` stand-in reporting reduced motion) and a router/query render helper |
 
 ### 5.17 Frontend tests (Vitest + Testing Library, next to the code they test)
 
@@ -332,6 +338,7 @@ RepoPulse/
 | `components/layout/RequireAuth.test.tsx` | Redirect when signed out; API-down error without leaking the page |
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
+| `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
 | `utils/format.test.ts` | Duration, date and number formatting |
@@ -367,7 +374,7 @@ RepoPulse/
 | Operators | Free-tier hosting, no servers to manage, live smoke test, clear docs |
 | Students / portfolio | A complete, deployed, tested full-stack product on real data |
 
-Quality evidence: **224 backend + 41 frontend automated tests**, live smoke test **16/16**
+Quality evidence: **224 backend + 46 frontend automated tests**, live smoke test **16/16**
 on production, every API endpoint checked against the shared contract.
 
 ## 7. Bottlenecks and limitations

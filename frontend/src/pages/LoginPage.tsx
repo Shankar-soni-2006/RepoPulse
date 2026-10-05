@@ -1,4 +1,4 @@
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Activity, CircleAlert, Github } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
 import { authService } from '@/services/authService';
@@ -35,10 +35,10 @@ export function LoginPage() {
     <div className="min-h-screen bg-muted/40 flex items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-md border border-border bg-background">
         <div className="px-6 pt-6 pb-5 border-b border-border">
-          <div className="flex items-center gap-2 mb-4">
+          <Link to="/" className="flex items-center gap-2 mb-4 w-fit" aria-label="RepoPulse home">
             <Activity className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold tracking-tight">RepoPulse</span>
-          </div>
+          </Link>
           <h1 className="text-base font-semibold">Sign in</h1>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
             Engineering analytics for your GitHub repositories: pull request cycle time, review
@@ -85,6 +85,12 @@ export function LoginPage() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             RepoPulse reads repositories through its GitHub App. You choose which accounts and
             repositories it can see when you install the app.
+          </p>
+
+          <p className="text-xs text-muted-foreground">
+            By continuing you agree to the{' '}
+            <Link to="/#terms" className="underline underline-offset-2 hover:text-foreground">Terms of Use</Link> and{' '}
+            <Link to="/#privacy" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</Link>.
           </p>
         </div>
       </div>
