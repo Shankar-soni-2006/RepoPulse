@@ -54,6 +54,17 @@ with deny-all policies, so the anon/authenticated keys can read nothing.
 | `avg_pr_size` | Mean size of PRs opened that day |
 | `active_contributors` | Distinct contributors with activity that day |
 
+## Team view functions (migration 009)
+
+| Function | Returns |
+|---|---|
+| `repositories_period_metrics(ids uuid[], from, to)` | The period metrics over a set of repositories, recomputed (medians over all PRs, people counted once by `github_id`). `repository_period_metrics` calls it with one id |
+| `members_activity(ids, from, to)` | One row per person (by GitHub id) across the set: repositories, commits, PRs opened/merged, reviews, lines, last active, weekly activity |
+| `repositories_breakdown(ids, from, to)` | Each repository's own period metrics |
+| `repositories_daily_metrics(ids, from_date, to_date)` | One row per UTC day with the same definitions |
+
+All four run with the service role only; the backend passes only repositories the user can access.
+
 ## Indexes
 
 Foreign keys and time-range access are indexed. Range queries use composite indexes:

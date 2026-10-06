@@ -24,7 +24,16 @@ function Bar({ value, max, color, text, label }: { value: number | null; max: nu
   );
 }
 
-export function PeriodComparison({ summary, metrics, days }: { summary: MetricsSummary; metrics: ComparableMetric[]; days: number }) {
+export function PeriodComparison({
+  summary,
+  metrics,
+  days,
+}: {
+  /** Repository analytics or the team view: anything with current/previous metrics and changes */
+  summary: Pick<MetricsSummary, 'metrics' | 'previousMetrics' | 'changes'>;
+  metrics: ComparableMetric[];
+  days: number;
+}) {
   const colors = useChartColors();
   const current = `Last ${days} days`;
   const previous = `Previous ${days} days`;

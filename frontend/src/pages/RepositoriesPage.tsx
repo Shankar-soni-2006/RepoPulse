@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Activity, ExternalLink, Globe, Lock, Building2, RefreshCw, Search } from 'lucide-react';
+import { Activity, ExternalLink, Globe, Lock, Building2, RefreshCw, Search, Users } from 'lucide-react';
 import { repositoryService } from '@/services/repositoryService';
 import { useSession, SESSION_QUERY_KEY } from '@/hooks/useSession';
 import { REPOSITORIES_QUERY_KEY, useRepositories, useStartSync } from '@/hooks/useRepository';
@@ -261,6 +261,17 @@ function ManageRepositoriesLinks({ session, onOpen }: { session: SessionInfo; on
     'inline-flex items-center gap-1.5 h-8 px-3 rounded border border-border text-sm hover:bg-accent transition-colors';
   return (
     <>
+      {session.installations.map((i) => (
+        <Link
+          key={`team-${i.id}`}
+          to={`/team/${i.id}`}
+          className={linkClass}
+          title={`All ${i.accountLogin} repositories you can access, combined: team metrics, members and trends`}
+        >
+          <Users className="h-3.5 w-3.5" />
+          {session.installations.length === 1 ? 'Team view' : `${i.accountLogin} team view`}
+        </Link>
+      ))}
       {session.installations.map((i) => (
         <a
           key={i.id}

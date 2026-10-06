@@ -4,10 +4,10 @@ import type { ContributorActivity, DailyTrend, PeriodMetrics } from '../types/in
 // Calls the analytics SQL functions (migration 007). Postgres numeric/bigint values
 // may arrive as strings, so every number passes through num()/numOrNull().
 
-const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
-const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+export const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
+export const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
 
-interface PeriodMetricsRow {
+export interface PeriodMetricsRow {
   pr_throughput: number;
   prs_opened: number;
   cycle_time: number | string | null;
@@ -55,6 +55,28 @@ interface DailyMetricRow {
   active_contributors: number;
 }
 
+/** Row of repository_period_metrics / repositories_period_metrics → PeriodMetrics */
+export function toPeriodMetrics(row: PeriodMetricsRow): { metrics: PeriodMetrics; commitStatsCoverage: number | null } {
+  const metrics: PeriodMetrics = {
+    prThroughput: num(row.pr_throughput),
+    prsOpened: num(row.prs_opened),
+    cycleTime: numOrNull(row.cycle_time),
+    firstReviewTime: numOrNull(row.first_review_time),
+    reviewDelay: numOrNull(row.review_delay),
+    prSize: numOrNull(row.pr_size),
+    codeChurn: num(row.code_churn),
+    additions: num(row.additions),
+    deletions: num(row.deletions),
+    commitCount: num(row.commit_count),
+    reviewCount: num(row.review_count),
+    activeContributors: num(row.active_contributors),
+    openPrsWithoutReview: num(row.open_prs_without_review),
+    oldestUnreviewedWait: numOrNull(row.oldest_unreviewed_wait),
+    commitsMissingStats: num(row.commits_missing_stats),
+  };
+  return { metrics, commitStatsCoverage: numOrNull(row.commit_stats_coverage) };
+}
+
 export const analyticsRepository = {
   /** Metrics for [from, to), plus the share of non-merge commits with known line stats. */
   async periodMetrics(
@@ -68,26 +90,9 @@ export const analyticsRepository = {
       p_to: to.toISOString(),
     });
     if (error) throw error;
-    const row = (data as PeriodMetricsRow[])[0];
-    const metrics: PeriodMetrics = {
-      prThroughput: num(row.pr_throughput),
-      prsOpened: num(row.prs_opened),
-      cycleTime: numOrNull(row.cycle_time),
-      firstReviewTime: numOrNull(row.first_review_time),
-      reviewDelay: numOrNull(row.review_delay),
-      prSize: numOrNull(row.pr_size),
-      codeChurn: num(row.code_churn),
-      additions: num(row.additions),
-      deletions: num(row.deletions),
-      commitCount: num(row.commit_count),
-      reviewCount: num(row.review_count),
-      activeContributors: num(row.active_contributors),
-      openPrsWithoutReview: num(row.open_prs_without_review),
-      oldestUnreviewedWait: numOrNull(row.oldest_unreviewed_wait),
-      commitsMissingStats: num(row.commits_missing_stats),
-    };
-    return { metrics, commitStatsCoverage: numOrNull(row.commit_stats_coverage) };
+    return toPeriodMetrics((data as PeriodMetricsRow[])[0]);
   },
+
 
   async contributorActivity(repositoryId: string, from: Date, to: Date): Promise<ContributorActivity[]> {
     const { data, error } = await supabase.rpc('contributor_activity', {

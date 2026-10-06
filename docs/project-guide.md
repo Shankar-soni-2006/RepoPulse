@@ -129,6 +129,7 @@ RepoPulse/
 | `migrations/005_sync_engine.sql` | `claim_repository_sync()` (atomic sync lock) and `commits.is_merge` |
 | `migrations/006_schema_spec_alignment.sql` | Unique PR number per repo, `html_url` / `is_fork` / `is_archived`, sync and webhook status values |
 | `migrations/008_roles.sql` | **Roles**: `users.role` (admin/member) and `suspended_at`; admin functions (list users, overview, set role, suspend, delete) that enforce "always one admin" and "admins can't be suspended/deleted" |
+| `migrations/009_team_view.sql` | **Team view**: `repositories_period_metrics` (the period metrics over a set of repositories, medians over all PRs together, people counted once by GitHub id), `members_activity`, `repositories_breakdown`, `repositories_daily_metrics`; `repository_period_metrics` now delegates to the set version |
 | `migrations/007_analytics_engine.sql` | The metric engine: `repository_period_metrics`, `contributor_activity`, `refresh_daily_metrics`; reshaped `daily_metrics`; `repositories.data_since` |
 | `config.toml` | Supabase CLI project config (placeholder project id) |
 | `seed.sql` | Intentionally empty: RepoPulse uses real GitHub data only |
@@ -168,6 +169,7 @@ RepoPulse/
 | `contributors.ts` | Contributor activity per repository |
 | `ai.ts` | `POST /api/ai/insights` |
 | `admin.ts` | `/api/admin/overview`, `/users`, `PATCH /users/:id` (role, suspend), `DELETE /users/:id`; admins only |
+| `team.ts` | `GET /api/team/accounts` (accounts with accessible/synced counts) and `GET /api/team/accounts/:accountId?days=` (team overview) |
 | `webhooks.ts` | `POST /api/webhooks/github` (signature-authenticated, no session/CSRF) |
 
 ### 5.7 `backend/src/controllers/`
@@ -180,6 +182,7 @@ RepoPulse/
 | `pullRequestController.ts` | Paginated/filtered/sorted PR list; PR detail with access check (inaccessible = 404) |
 | `aiController.ts` | Validates the AI request and returns structured insights |
 | `adminController.ts` | Admin overview, user list, role/suspension updates and deletion (validated) |
+| `teamController.ts` | Team accounts list and team overview (account id and period validated) |
 | `webhookController.ts` | Verifies and records a delivery, answers 202 immediately, processes it in the background |
 
 ### 5.8 `backend/src/middleware/`
@@ -210,6 +213,7 @@ RepoPulse/
 | `ai/schema.ts` | Strict JSON schema sent to the model + Zod schema that validates its answer |
 | `ai/grounding.ts` | Checks that every number in the answer exists in the input (anti-hallucination) |
 | `admin/adminService.ts` | Admin actions; refuses actions on your own account (`SELF_ACTION`) |
+| `team/teamService.ts` | **Team view**: picks the synced repositories of one account that the user can access, combines them, writes the data-quality notes; cached 5 min per repository set |
 | `ai/aiService.ts` | Modes (summary, trends, anomalies, bottlenecks, question), prompt, per-user hourly limit (Redis), 6 h answer cache, rejected-insight reporting |
 
 ### 5.10 `backend/src/repositories/` (database access)
@@ -227,6 +231,7 @@ RepoPulse/
 | `contributorRepository.ts` | Repository-scoped contributor identities |
 | `analyticsRepository.ts` | Calls the SQL metric functions and converts Postgres numerics |
 | `adminRepository.ts` | Calls the admin SQL functions and maps their rule errors (`LAST_ADMIN`, `TARGET_IS_ADMIN`) |
+| `teamRepository.ts` | Accessible repositories per user, and calls to the team SQL functions |
 | `webhookEventRepository.ts` | Records deliveries (duplicate-safe), status transitions, recent deliveries |
 
 ### 5.11 `backend/src/webhooks/`, `schemas/`, `types/`, `utils/`
@@ -260,6 +265,8 @@ RepoPulse/
 | `cache.test.ts` | Hit/miss, TTL, invalidation retries, Redis failures, counters |
 | `webhooks.test.ts` | Signatures, duplicates, processing per event type |
 | `ai.test.ts` | Provider fallback, grounding, caching, limits, failures |
+| `team.test.ts` | Team API: only synced, accessible repositories of that account; 404 for other accounts; admins get nothing extra |
+| `db.team.test.ts` | Team SQL against a two-repository fixture: combined medians, people counted once, members, breakdown, daily series |
 | `admin.test.ts` | Members get 403, CSRF, admin actions, self-protection, rule errors, suspended users signed out and blocked at sign-in |
 | `db.roles.test.ts` | Migration 008 on Postgres: default role, last-admin rule, suspension, admin protection, delete keeps repository data |
 | `failures.test.ts` | GitHub/database failure mapping, no detail leaks |
@@ -297,6 +304,7 @@ RepoPulse/
 | `AnalyticsPage.tsx` | "This period vs previous" bar comparison, metrics table, and 10 daily trend charts (one unit per chart) |
 | `AIInsightsPage.tsx` | Analysis modes, free question, structured insights, clear AI-unavailable/no-activity states |
 | `AdminPage.tsx` | **Admins only** (`/admin`): system overview, user list with role/status/activity, make admin/member, suspend/reinstate, delete with confirmation |
+| `TeamPage.tsx` | **Team view** (`/team/:accountId`): one account's repositories combined: team metrics vs the previous period, members (each once, alphabetical), per-repository table, trends. Opened from "Team view" on the Repositories page |
 | `SettingsPage.tsx` | Sync status, GitHub connection, manage-repositories link, webhook deliveries |
 
 ### 5.15 `frontend/src/components/`
@@ -340,7 +348,7 @@ RepoPulse/
 | `hooks/useTheme.ts` | **App-wide light/dark theme**: system setting by default, saved choice (localStorage), synced across toggles and tabs, applied as the `dark` class on `<html>` |
 | `hooks/usePeriod.ts` | `?days=7|30|90` kept in the URL so views are shareable |
 | `services/api.ts` | Fetch wrapper: relative `/api`, credentials, CSRF header, envelope → typed result or `ApiRequestError` |
-| `services/{auth,repository,analytics,pullRequest,contributor,ai,system,admin}Service.ts` | Typed calls for each backend area |
+| `services/{auth,repository,analytics,pullRequest,contributor,ai,system,admin,team}Service.ts` | Typed calls for each backend area |
 | `types/index.ts` | Re-exports the shared contract types |
 | `utils/format.ts` | Duration, date, number and percentage formatting |
 | `utils/cn.ts` | Class-name merge helper |
@@ -358,6 +366,7 @@ RepoPulse/
 | `pages/PullRequestsPage.test.tsx` | Listing, sorting via the API, URL state, empty and error states |
 | `pages/AIInsightsPage.test.tsx` | No AI call until asked, modes, question, not-configured and no-activity states |
 | `pages/AdminPage.test.tsx` | Members blocked, overview and users, no actions on yourself, promote/suspend/delete with confirmation, admins protected, refused actions explained |
+| `pages/TeamPage.test.tsx` | Combined members and repository breakdown, the "sync first" state, 404 without revealing the account |
 | `pages/LoginPage.test.tsx` | Member form by default, switch to the admin form (kept in the URL), not-admin message, signed-in redirects by role |
 | `components/reactbits/Carousel.test.tsx` | Labelled carousel, off-screen slides hidden from screen readers, next/previous/dots/arrow keys, current dot, no "previous" on the first slide without loop |
 | `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
@@ -412,6 +421,7 @@ RepoPulse has **two layers of access**, and both apply to every request:
 | Overview, Pull Requests, Contributors, Analytics, Settings of those repositories | ✅ | ✅ |
 | AI Insights on those repositories (20 requests per hour each) | ✅ | ✅ |
 | Light/dark theme, home page, legal pages | ✅ | ✅ |
+| **Team view** of an account: its repositories they can access, combined (team metrics, members, trends) | ✅ | ✅ (same scope as a member) |
 | See repositories GitHub doesn't give them access to | ❌ | ❌ |
 | Open the **Admin** page (`/admin`) and the `/api/admin/*` endpoints | ❌ (403 `ADMIN_REQUIRED`) | ✅ |
 | See the **system overview** (users, admins, new users, suspended, active sessions, repositories, failed syncs, webhook failures in 24 h) | ❌ | ✅ |
@@ -519,6 +529,34 @@ Covered by `backend/tests/auth.test.ts` (admin form), `backend/tests/admin.test.
 | Tests | `backend/tests/admin.test.ts`, `backend/tests/auth.test.ts` (admin form), `backend/tests/db.roles.test.ts`, `frontend/src/pages/AdminPage.test.tsx`, `frontend/src/pages/LoginPage.test.tsx` |
 | Docs | `docs/architecture/auth.md` (Roles), `docs/database/schema.md`, `docs/deployment.md` (First admin) |
 
+### 6.6 Team view: an organization's analytics in one place
+
+The **Team view** combines all repositories of one account (an organization, or a personal
+account) that RepoPulse can see. Open it from **Team view** next to the account on the
+Repositories page. It shows:
+
+- team metrics for the period (7/30/90 days) compared with the period before;
+- every member once, with repositories, PRs opened and merged, reviews, commits, lines and weekly activity (alphabetical, not ranked);
+- each repository's own numbers, linking to its dashboard;
+- daily trends across all repositories.
+
+Numbers are **recomputed** over the whole set, not added up: medians use all PRs together, and a
+person active in three repositories is one active person.
+
+**Who sees what.** The Team view follows GitHub access, like everything else: it includes only the
+repositories *you* can access on GitHub, and only those that have been synced (the page says how
+many are left out). An org owner who can access every repository sees the whole organization; a
+member who can access five repositories sees those five. The RepoPulse **admin role adds nothing
+here**: admins manage RepoPulse users, they don't get extra repository data. An account you can't
+see answers 404, so its existence isn't revealed.
+
+| Layer | Files |
+|---|---|
+| Database | `supabase/migrations/009_team_view.sql` |
+| Backend | `routes/team.ts` → `controllers/teamController.ts` → `services/team/teamService.ts` → `repositories/teamRepository.ts` |
+| Frontend | `pages/TeamPage.tsx`, `services/teamService.ts`, link in `pages/RepositoriesPage.tsx` |
+| Tests | `backend/tests/team.test.ts`, `backend/tests/db.team.test.ts`, `frontend/src/pages/TeamPage.test.tsx` |
+
 ## 7. Light and dark mode
 
 | Topic | Summary |
@@ -565,6 +603,7 @@ on production, every API endpoint checked against the shared contract.
 | 10 | **Single-region, single-instance services** | No high availability beyond the providers' own | Acceptable for this scale; Supabase stays the source of truth if Redis fails |
 | 11 | **Roles are app-wide** | An admin manages every user; there are no per-team or per-organization admins | Fine for one operator; team-scoped roles would need an extra table |
 | 12 | **Tailwind 3 build-time advisory** (`braces`) | Build tooling only, never shipped to browsers | Planned: Tailwind 4 migration |
+| 13 | **Team view only covers synced repositories** | An organization's unsynced repositories are left out (the page says how many) | Sync each repository once; planned: "sync all" for an account |
 
 ## 10. Where to start reading the code
 

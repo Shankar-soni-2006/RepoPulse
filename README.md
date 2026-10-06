@@ -73,6 +73,13 @@ Two Vercel projects from this repository: `frontend/` (static app, proxies `/api
 
 Details, messages and the member/admin privilege table: `docs/project-guide.md` §6.
 
+## Team view
+
+On the Repositories page, **Team view** combines all of an account's (organization's)
+repositories you can access: team metrics, every member once, per-repository numbers and
+trends. It follows your GitHub access; the admin role adds nothing. See
+`docs/project-guide.md` §6.6.
+
 ## Light and dark mode
 
 Every page has a sun/moon toggle in its header. The site follows your device's setting until

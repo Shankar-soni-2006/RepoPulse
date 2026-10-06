@@ -13,6 +13,7 @@ import analyticsRouter from './routes/analytics.js';
 import aiRouter from './routes/ai.js';
 import webhooksRouter from './routes/webhooks.js';
 import adminRouter from './routes/admin.js';
+import teamRouter from './routes/team.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/pull-requests', pullRequestDetailRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/webhooks', webhooksRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/team', teamRouter);
 
 // ---- Unknown routes / error handler (must be last) ----
 app.use(notFoundMiddleware);

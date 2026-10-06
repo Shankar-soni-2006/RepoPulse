@@ -262,6 +262,66 @@ export interface DailyTrend {
   activeContributors: number;
 }
 
+// ---- Team view (one account's repositories combined) ----
+// Only repositories the signed-in user can access on GitHub are included.
+
+export interface TeamAccount {
+  /** RepoPulse installation id */
+  id: string;
+  login: string;
+  type: 'User' | 'Organization';
+  /** Repositories of this account the user can access */
+  repositoryCount: number;
+  /** …of which have been synced (only these are in the numbers) */
+  syncedRepositoryCount: number;
+}
+
+/** One person's activity across the account's repositories */
+export interface TeamMemberActivity {
+  githubId: number;
+  login: string;
+  avatarUrl: string | null;
+  /** Repositories they were active in during the period */
+  repositories: number;
+  commits: number;
+  prsOpened: number;
+  prsMerged: number;
+  reviews: number;
+  additions: number;
+  deletions: number;
+  lastActiveAt: string | null;
+  /** Commits + PRs opened + reviews per 7-day bucket from the period start */
+  weeklyActivity: number[];
+}
+
+export interface TeamRepositoryRow {
+  repositoryId: string;
+  fullName: string;
+  lastSyncedAt: string | null;
+  prThroughput: number;
+  prsOpened: number;
+  cycleTime: number | null;
+  reviewCount: number;
+  commitCount: number;
+  codeChurn: number;
+  activeContributors: number;
+}
+
+export interface TeamOverview {
+  account: TeamAccount;
+  period: AnalyticsPeriod;
+  previousPeriod: { from: string; to: string };
+  /** Recomputed over all synced repositories together (medians over all PRs; people counted once) */
+  metrics: PeriodMetrics;
+  previousMetrics: PeriodMetrics;
+  changes: MetricChanges;
+  dataQuality: DataQuality;
+  repositories: TeamRepositoryRow[];
+  members: TeamMemberActivity[];
+  trends: DailyTrend[];
+  generatedAt: string;
+}
+
 export interface Analytics extends MetricsSummary {
   trends: DailyTrend[];
 }
