@@ -77,8 +77,11 @@ Details, messages and the member/admin privilege table: `docs/project-guide.md` 
 
 On the Repositories page, **Team view** combines all of an account's (organization's)
 repositories you can access: team metrics, every member once, per-repository numbers and
-trends. It follows your GitHub access; the admin role adds nothing. See
-`docs/project-guide.md` §6.6.
+trends. It follows your GitHub access; the admin role adds nothing.
+
+To add an organization: on the Repositories page click **Add account**, pick the organization on
+GitHub (owners install it; other members can only request it), choose **All repositories**, then
+sync its repositories. See `docs/project-guide.md` §6.6.
 
 ## Light and dark mode
 

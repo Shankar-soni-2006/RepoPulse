@@ -550,6 +550,24 @@ member who can access five repositories sees those five. The RepoPulse **admin r
 here**: admins manage RepoPulse users, they don't get extra repository data. An account you can't
 see answers 404, so its existence isn't revealed.
 
+**Adding an organization.** The Team view needs the GitHub App installed on the organization.
+Installing it on your personal account doesn't cover your organizations, and **Manage repositories**
+opens an existing installation only, so it never lists organizations.
+
+1. On the Repositories page, click **Add account**. It opens GitHub's
+   `https://github.com/apps/<app-slug>/installations/new`, which lists your personal account and
+   every organization you belong to.
+2. Pick the organization. **Organization owners** see **Install**; other members can only send a
+   **request** to an owner, and nothing is installed until an owner approves it.
+3. Choose **All repositories** (recommended, so new repositories are included) or select some, then
+   click **Install**.
+4. Back in RepoPulse the list refreshes on its own (or click **Refresh from GitHub**). The
+   organization's repositories appear and a **<organization> team view** link is added.
+5. Sync the repositories you want, then open the Team view. Only synced repositories are counted.
+
+Each member who signs in sees the organization's repositories *they* can access on GitHub; nobody
+needs to install the app again.
+
 | Layer | Files |
 |---|---|
 | Database | `supabase/migrations/009_team_view.sql` |
