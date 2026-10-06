@@ -25,6 +25,15 @@ describe('HomePage', () => {
     }
   });
 
+  it('lists five upcoming features, marked as planned', () => {
+    vi.mocked(authService.me).mockResolvedValue(null);
+    renderPage(<HomePage />);
+    const upcoming = screen.getByRole('region', { name: 'Upcoming features' });
+    expect(within(upcoming).getAllByRole('heading', { level: 3 })).toHaveLength(5);
+    expect(within(upcoming).getAllByText('Planned')).toHaveLength(5);
+    expect(within(upcoming).getByRole('heading', { name: 'Scheduled daily sync' })).toBeInTheDocument();
+  });
+
   it('contains the privacy policy and terms of use', () => {
     vi.mocked(authService.me).mockResolvedValue(null);
     renderPage(<HomePage />);

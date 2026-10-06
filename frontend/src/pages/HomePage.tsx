@@ -3,15 +3,20 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Activity,
   BarChart3,
+  Bot,
+  Boxes,
+  CalendarClock,
   Clock,
   Database,
   GitPullRequest,
   Github,
+  Globe,
   Lightbulb,
   Linkedin,
   Lock,
   RefreshCw,
   ShieldCheck,
+  UserCog,
   Users,
   Webhook,
 } from 'lucide-react';
@@ -96,6 +101,35 @@ const FEATURES = [
     icon: Database,
     title: 'Real data only',
     text: 'No demo numbers. Everything comes from your repositories, stored in Postgres and cached for speed.',
+  },
+];
+
+// Planned, not built yet (from the bottlenecks in docs/project-guide.md §9). No dates promised.
+const UPCOMING = [
+  {
+    icon: CalendarClock,
+    title: 'Scheduled daily sync',
+    text: 'Every repository refreshes itself once a day, so events webhooks don’t cover are picked up without a manual sync.',
+  },
+  {
+    icon: Boxes,
+    title: 'Sync a whole organization',
+    text: 'One click syncs every repository of an organization, so the team view is complete from the start.',
+  },
+  {
+    icon: Bot,
+    title: 'Bot filter',
+    text: 'Leave Dependabot, Renovate and other bots out of contributor counts and review metrics.',
+  },
+  {
+    icon: Globe,
+    title: 'Your time zone',
+    text: 'Daily charts and “last active” times in your team’s time zone instead of UTC.',
+  },
+  {
+    icon: UserCog,
+    title: 'Organization admins',
+    text: 'Roles per organization: let a team lead manage their own team’s members without being an admin of all of RepoPulse.',
   },
 ];
 
@@ -210,6 +244,7 @@ export function HomePage() {
           <nav aria-label="Sections" className="ml-2 hidden items-center gap-4 text-sm text-muted-foreground sm:flex">
             <a href="#features" className="hover:text-foreground">Features</a>
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>
+            <a href="#upcoming" className="hover:text-foreground">Upcoming</a>
             <a href="#privacy" className="hover:text-foreground">Privacy</a>
             <a href="#terms" className="hover:text-foreground">Terms</a>
           </nav>
@@ -362,6 +397,34 @@ export function HomePage() {
             <Lock className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
             RepoPulse never writes to GitHub. It only reads repositories you choose when installing the App.
           </div>
+        </section>
+
+        {/* Upcoming features */}
+        <section id="upcoming" aria-labelledby="upcoming-title" className="scroll-mt-16 border-t border-border py-16">
+          <h2 id="upcoming-title" className="text-lg font-semibold tracking-tight">Upcoming features</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            What’s planned next. These aren’t available yet, and no dates are promised.
+          </p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {UPCOMING.map(({ icon: Icon, title, text }, i) => (
+              <li key={title}>
+                <Reveal motion={motion} delay={(i % 3) * 0.08}>
+                  <HoverCard motion={motion} dark={dark}>
+                    <div className="h-full rounded-lg border border-dashed border-border p-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <Icon className="h-4 w-4 text-primary" aria-hidden />
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          Planned
+                        </span>
+                      </div>
+                      <h3 className="mt-3 text-sm font-semibold">{title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                    </div>
+                  </HoverCard>
+                </Reveal>
+              </li>
+            ))}
+          </ul>
         </section>
 
         {/* Legal */}

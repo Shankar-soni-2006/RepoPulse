@@ -295,7 +295,7 @@ RepoPulse/
 
 | File | Screen |
 |---|---|
-| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits (SplitText headline, ShinyText label, CountUp facts; features as a **Carousel slider** (autoplay, drag, arrows, dots, keyboard) with a "Show all features" grid view; feature and step cards with SpotlightCard, GlareHover, Magnet and scroll fade-in), static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
+| `HomePage.tsx` | Public landing page at `/`: hero, project facts, all features, how it works, **Upcoming features** (5 planned items marked "Planned", no dates), **Privacy Policy**, **Terms of Use**, footer with the owner's GitHub and LinkedIn. Uses React Bits (SplitText headline, ShinyText label, CountUp facts; features as a **Carousel slider** (autoplay, drag, arrows, dots, keyboard) with a "Show all features" grid view; feature and step cards with SpotlightCard, GlareHover, Magnet and scroll fade-in), static when the visitor prefers reduced motion; theme toggle in the header (app-wide light/dark mode); loaded on demand |
 | `LoginPage.tsx` | **Member / Admin** sign-in forms (both GitHub; the admin form only lets admins in and lands on the Admin page); explains sign-in errors; API-unreachable notice; terms and privacy links |
 | `RepositoriesPage.tsx` | Repository list with search/filters, Sync, **Manage repositories**, auto-refresh from GitHub, install guidance |
 | `OverviewPage.tsx` | Headline metrics with period comparison and data-quality notes |
@@ -369,7 +369,7 @@ RepoPulse/
 | `pages/TeamPage.test.tsx` | Combined members and repository breakdown, the "sync first" state, 404 without revealing the account |
 | `pages/LoginPage.test.tsx` | Member form by default, switch to the admin form (kept in the URL), not-admin message, signed-in redirects by role |
 | `components/reactbits/Carousel.test.tsx` | Labelled carousel, off-screen slides hidden from screen readers, next/previous/dots/arrow keys, current dot, no "previous" on the first slide without loop |
-| `pages/HomePage.test.tsx` | Features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
+| `pages/HomePage.test.tsx` | Features, five upcoming features, privacy policy and terms present; GitHub/LinkedIn footer links; sign-in and dashboard actions; dark mode default, toggle and remembered choice |
 | `pages/RepositoriesPage.test.tsx` | Auto-refresh on open and on return from GitHub, Manage repositories link, guidance |
 | `services/api.test.ts` | Envelope parsing, CSRF header, network and non-JSON errors |
 | `utils/format.test.ts` | Duration, date and number formatting |
